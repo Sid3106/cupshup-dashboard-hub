@@ -1,4 +1,4 @@
-import { Home, Users, Briefcase, ClipboardList } from "lucide-react";
+import { Home, Users, Briefcase, UserCircle, Wrench, Activity, ClipboardList } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -25,6 +25,26 @@ const menuItems = [
     title: "Vendors",
     icon: Briefcase,
     url: "/dashboard/vendors",
+  },
+  {
+    title: "Clients",
+    icon: UserCircle,
+    url: "/dashboard/clients",
+  },
+  {
+    title: "Services",
+    icon: Wrench,
+    url: "/dashboard/services",
+  },
+  {
+    title: "Activities",
+    icon: Activity,
+    url: "/dashboard/activities",
+  },
+  {
+    title: "Tasks",
+    icon: ClipboardList,
+    url: "/dashboard/tasks",
   },
 ];
 
