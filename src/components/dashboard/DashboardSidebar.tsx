@@ -12,7 +12,7 @@ import {
 
 const menuItems = [
   {
-    title: "Overview",
+    title: "Dashboard",
     icon: Home,
     url: "/dashboard",
   },
@@ -22,14 +22,9 @@ const menuItems = [
     url: "/dashboard/users",
   },
   {
-    title: "Activities",
+    title: "Vendors",
     icon: Briefcase,
-    url: "/dashboard/activities",
-  },
-  {
-    title: "Tasks",
-    icon: ClipboardList,
-    url: "/dashboard/tasks",
+    url: "/dashboard/vendors",
   },
 ];
 
