@@ -15,14 +15,14 @@ export function DashboardHeader() {
     <header className="border-b bg-white">
       <div className="flex h-16 items-center px-4 gap-4">
         <div className="ml-auto flex items-center gap-4">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="text-gray-600 hover:text-[#00A979] hover:bg-[#00A979]/5">
             <Bell className="h-5 w-5" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar>
-                  <AvatarFallback>CS</AvatarFallback>
+                  <AvatarFallback className="bg-[#00A979] text-white">CS</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -32,7 +32,7 @@ export function DashboardHeader() {
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Log out</DropdownMenuItem>
+              <DropdownMenuItem className="text-red-600">Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
