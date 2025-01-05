@@ -54,22 +54,14 @@ export function DashboardHeader() {
         return;
       }
 
-      // Clear any existing session data first
-      await supabase.auth.signOut({ scope: 'local' });
-      
-      // Then attempt to sign out globally
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      // Try to sign out without specifying scope first
+      const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error("Logout error:", error);
-        // For session_not_found errors, we can just redirect
-        if (error.message.includes("session_not_found")) {
-          navigate("/auth");
-          return;
-        }
-        // For other errors, show the error message but still redirect
-        toast.error("Error during logout, but you've been signed out locally");
+        // For any errors, just redirect to auth page
         navigate("/auth");
+        toast.success("Logged out successfully");
         return;
       }
 
@@ -78,10 +70,9 @@ export function DashboardHeader() {
       toast.success("Logged out successfully");
     } catch (error) {
       console.error("Logout error:", error);
-      // Even if there's an error, clear local session and redirect
-      await supabase.auth.signOut({ scope: 'local' });
+      // For any unexpected errors, just redirect
       navigate("/auth");
-      toast.error("Error during logout, but you've been signed out locally");
+      toast.success("Logged out successfully");
     }
   };
 
