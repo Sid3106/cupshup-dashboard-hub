@@ -9,9 +9,7 @@ import { InviteUserDialog } from "@/components/users/InviteUserDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
-  email?: string;
-};
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 export default function UsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);
@@ -48,23 +46,7 @@ export default function UsersPage() {
         return;
       }
 
-      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch user emails",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const usersWithEmail = profiles?.map((profile) => ({
-        ...profile,
-        email: authUsers.find(user => user.id === profile.user_id)?.email || '',
-      }));
-
-      setUsers(usersWithEmail || []);
+      setUsers(profiles || []);
     };
 
     fetchCurrentUserRole();
@@ -103,7 +85,7 @@ export default function UsersPage() {
               <div className="space-y-1 text-sm text-gray-500">
                 <p>Role: {user.role}</p>
                 <p>City: {user.city || 'N/A'}</p>
-                <p>Email: {user.email}</p>
+                <p>Phone: {user.phone_number}</p>
               </div>
             </Card>
           ))}

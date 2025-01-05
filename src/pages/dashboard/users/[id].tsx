@@ -8,15 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
-type UserProfile = Database["public"]["Tables"]["profiles"]["Row"] & {
-  email?: string;
-};
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 export default function UserDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<Profile | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,23 +47,7 @@ export default function UserDetailPage() {
         return;
       }
 
-      const { data: { users }, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch user email",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const userEmail = users.find(user => user.id === profile.user_id)?.email;
-
-      setUser({
-        ...profile,
-        email: userEmail || '',
-      });
+      setUser(profile);
     };
 
     fetchCurrentUserRole();
@@ -110,10 +92,6 @@ export default function UserDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Email</p>
-                <p>{user.email}</p>
-              </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Phone Number</p>
                 <p>{user.phone_number}</p>
