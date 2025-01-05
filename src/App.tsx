@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import DashboardPage from "./pages/dashboard/Index";
 import UsersPage from "./pages/dashboard/users/Index";
 import UserDetailPage from "./pages/dashboard/users/[id]";
+import VendorsPage from "./pages/dashboard/vendors/Index";
+import VendorDetailPage from "./pages/dashboard/vendors/[id]";
 import AuthPage from "./pages/auth/Index";
 
 const queryClient = new QueryClient();
@@ -74,6 +76,22 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <UserDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/vendors"
+            element={
+              <ProtectedRoute>
+                <VendorsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/vendors/:id"
+            element={
+              <ProtectedRoute>
+                <VendorDetailPage />
               </ProtectedRoute>
             }
           />
