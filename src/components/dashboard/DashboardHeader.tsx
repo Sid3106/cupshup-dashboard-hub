@@ -54,12 +54,15 @@ export function DashboardHeader() {
         return;
       }
 
-      // Try to sign out without specifying scope first
+      // First clear the session from browser storage
+      await supabase.auth.signOut({ scope: 'local' });
+      
+      // Then attempt a clean logout without scope
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error("Logout error:", error);
-        // For any errors, just redirect to auth page
+        // Even if there's an error, we've cleared the local session
         navigate("/auth");
         toast.success("Logged out successfully");
         return;
@@ -70,7 +73,8 @@ export function DashboardHeader() {
       toast.success("Logged out successfully");
     } catch (error) {
       console.error("Logout error:", error);
-      // For any unexpected errors, just redirect
+      // For any unexpected errors, ensure we clear local session
+      await supabase.auth.signOut({ scope: 'local' });
       navigate("/auth");
       toast.success("Logged out successfully");
     }
