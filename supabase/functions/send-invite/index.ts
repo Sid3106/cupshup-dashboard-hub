@@ -36,8 +36,8 @@ serve(async (req) => {
     // Check if user already exists
     const { data: existingUsers, error: searchError } = await supabaseClient
       .from('profiles')
-      .select('user_id, email')
-      .eq('email', inviteData.email)
+      .select('user_id')
+      .eq('user_id', (await supabaseClient.auth.admin.listUsers()).data.users.find(u => u.email === inviteData.email)?.id)
       .maybeSingle()
 
     if (searchError) {
@@ -74,8 +74,7 @@ serve(async (req) => {
           role: inviteData.role,
           city: inviteData.city,
           name: inviteData.name,
-          phone_number: inviteData.phone_number,
-          email: inviteData.email
+          phone_number: inviteData.phone_number
         })
 
       if (profileError) {
