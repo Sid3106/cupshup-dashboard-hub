@@ -41,6 +41,13 @@ export default function AuthPage() {
         if (event === 'USER_UPDATED') {
           console.log("User updated:", session);
         }
+        // Handle auth errors
+        if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+          toast({
+            title: "Session ended",
+            description: "Please sign in again to continue."
+          });
+        }
       }
     );
 
@@ -101,7 +108,7 @@ export default function AuthPage() {
                   social_provider_text: 'Sign in with {{provider}}',
                   link_text: 'Already have an account? Sign in',
                   email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Your password',
+                  password_input_placeholder: 'Your password'
                 },
                 magic_link: {
                   button_label: 'Send Magic Link',
