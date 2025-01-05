@@ -38,6 +38,9 @@ export default function AuthPage() {
         if (event === 'SIGNED_OUT') {
           navigate("/auth");
         }
+        if (event === 'USER_UPDATED') {
+          console.log("User updated:", session);
+        }
       }
     );
 
@@ -89,6 +92,9 @@ export default function AuthPage() {
                   confirmation_text: 'Check your email for the confirmation link',
                   email_input_placeholder: 'Your email address',
                   password_input_placeholder: 'Your password',
+                  error: {
+                    message: 'An error occurred during sign up. If you already have an account, please sign in instead.'
+                  }
                 },
                 sign_in: {
                   email_label: 'Email',
