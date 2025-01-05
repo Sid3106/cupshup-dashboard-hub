@@ -61,6 +61,7 @@ serve(async (req) => {
       // Send welcome email via Resend
       if (RESEND_API_KEY) {
         try {
+          console.log('Sending welcome email to:', inviteData.email)
           const emailResponse = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
@@ -82,13 +83,20 @@ serve(async (req) => {
           });
 
           if (!emailResponse.ok) {
-            console.error('Resend API error:', await emailResponse.text())
+            const errorText = await emailResponse.text();
+            console.error('Resend API error:', errorText);
+            throw new Error(`Failed to send email: ${errorText}`);
           }
+
+          const emailResult = await emailResponse.json();
+          console.log('Email sent successfully:', emailResult);
         } catch (emailError) {
-          console.error('Email sending error:', emailError)
+          console.error('Email sending error:', emailError);
+          // We don't throw here to avoid failing the whole invitation process
+          // The user will still be invited, just without the welcome email
         }
       } else {
-        console.warn('RESEND_API_KEY not configured')
+        console.warn('RESEND_API_KEY not configured');
       }
     }
 
