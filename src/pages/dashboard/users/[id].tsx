@@ -8,7 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
+  email: string;
+};
 
 export default function UserDetailPage() {
   const { id } = useParams();
@@ -32,22 +34,38 @@ export default function UserDetailPage() {
     };
 
     const fetchUserDetails = async () => {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-      if (profileError) {
+      try {
+        const response = await fetch(
+          'https://zdslyhsaebzabstxskgd.functions.supabase.co/get-users',
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch users');
+        }
+
+        const users = await response.json();
+        const user = users.find((u: Profile) => u.id === id);
+        
+        if (!user) {
+          throw new Error('User not found');
+        }
+
+        setUser(user);
+      } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to fetch user details",
+          description: error.message,
           variant: "destructive",
         });
-        return;
       }
-
-      setUser(profile);
     };
 
     fetchCurrentUserRole();
@@ -92,6 +110,10 @@ export default function UserDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Email</p>
+                <p>{user.email}</p>
+              </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Phone Number</p>
                 <p>{user.phone_number}</p>

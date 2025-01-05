@@ -9,7 +9,9 @@ import { InviteUserDialog } from "@/components/users/InviteUserDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
+  email: string;
+};
 
 export default function UsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);
@@ -33,20 +35,32 @@ export default function UsersPage() {
     };
 
     const fetchUsers = async () => {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-      if (error) {
+      try {
+        const response = await fetch(
+          'https://zdslyhsaebzabstxskgd.functions.supabase.co/get-users',
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch users');
+        }
+
+        const users = await response.json();
+        setUsers(users);
+      } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to fetch users",
+          description: error.message,
           variant: "destructive",
         });
-        return;
       }
-
-      setUsers(profiles || []);
     };
 
     fetchCurrentUserRole();
@@ -85,6 +99,7 @@ export default function UsersPage() {
               <div className="space-y-1 text-sm text-gray-500">
                 <p>Role: {user.role}</p>
                 <p>City: {user.city || 'N/A'}</p>
+                <p>Email: {user.email}</p>
                 <p>Phone: {user.phone_number}</p>
               </div>
             </Card>
