@@ -10,6 +10,7 @@ import UsersPage from "./pages/dashboard/users/Index";
 import UserDetailPage from "./pages/dashboard/users/[id]";
 import VendorsPage from "./pages/dashboard/vendors/Index";
 import VendorDetailPage from "./pages/dashboard/vendors/[id]";
+import ClientsPage from "./pages/dashboard/clients/Index";
 import ProfilePage from "./pages/dashboard/profile/Index";
 import AuthPage from "./pages/auth/Index";
 
@@ -101,6 +102,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <VendorDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/clients"
+            element={
+              <ProtectedRoute>
+                <ClientsPage />
               </ProtectedRoute>
             }
           />
