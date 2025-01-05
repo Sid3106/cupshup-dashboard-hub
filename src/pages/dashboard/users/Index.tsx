@@ -7,16 +7,11 @@ import { UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { InviteUserDialog } from "@/components/users/InviteUserDialog";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from "@/integrations/supabase/types";
 
-interface Profile {
-  id: string;
-  name: string | null;
-  role: "CupShup" | "Vendor" | "Client";
-  city: string | null;
-  phone_number: string;
-  user_id: string;
+type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   email?: string;
-}
+};
 
 export default function UsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);

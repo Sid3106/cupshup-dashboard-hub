@@ -6,18 +6,11 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from "@/integrations/supabase/types";
 
-interface UserProfile {
-  id: string;
-  name: string | null;
-  role: "CupShup" | "Vendor" | "Client";
-  city: string | null;
-  phone_number: string;
-  user_id: string;
+type UserProfile = Database["public"]["Tables"]["profiles"]["Row"] & {
   email?: string;
-  created_at: string;
-  updated_at: string;
-}
+};
 
 export default function UserDetailPage() {
   const { id } = useParams();
