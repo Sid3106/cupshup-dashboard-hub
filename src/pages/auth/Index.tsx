@@ -3,14 +3,25 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("Auth check error:", error);
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: error.message
+        });
+        return;
+      }
       if (session) {
         navigate("/dashboard");
       }
@@ -20,7 +31,8 @@ export default function AuthPage() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (event, session) => {
+        console.log("Auth state changed:", event, session);
         if (session) {
           navigate("/dashboard");
         }
@@ -28,7 +40,7 @@ export default function AuthPage() {
     );
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -57,6 +69,14 @@ export default function AuthPage() {
             }}
             providers={[]}
             redirectTo={window.location.origin}
+            onError={(error) => {
+              console.error("Auth error:", error);
+              toast({
+                variant: "destructive",
+                title: "Authentication Error",
+                description: error.message
+              });
+            }}
           />
         </div>
       </div>
