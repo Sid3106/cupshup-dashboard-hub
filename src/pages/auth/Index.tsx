@@ -33,8 +33,11 @@ export default function AuthPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event, session);
-        if (session) {
+        if (event === 'SIGNED_IN') {
           navigate("/dashboard");
+        }
+        if (event === 'SIGNED_OUT') {
+          navigate("/auth");
         }
       }
     );
@@ -71,9 +74,15 @@ export default function AuthPage() {
             redirectTo={window.location.origin}
             localization={{
               variables: {
+                sign_up: {
+                  email_label: 'Email',
+                  password_label: 'Password',
+                  button_label: 'Sign up',
+                },
                 sign_in: {
                   email_label: 'Email',
                   password_label: 'Password',
+                  button_label: 'Sign in',
                 }
               }
             }}
