@@ -45,15 +45,27 @@ export function DashboardHeader() {
 
   const handleLogout = async () => {
     try {
-      // Simple signOut without any scope
+      // First, get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // If no session exists, just navigate to auth page
+        navigate("/auth");
+        return;
+      }
+
+      // Clear any existing session data
       await supabase.auth.signOut();
       
-      // Always navigate to auth page and show success message
+      // Clear any local storage data
+      localStorage.clear();
+      
+      // Navigate to auth page and show success message
       navigate("/auth");
       toast.success("Logged out successfully");
     } catch (error) {
       console.error("Logout error:", error);
-      // Even if there's an error, redirect to auth page
+      // Even if there's an error, make sure we redirect
       navigate("/auth");
       toast.success("Logged out successfully");
     }
