@@ -32,14 +32,16 @@ export default function AuthPage() {
           }
 
           navigate('/dashboard');
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error during profile creation:', error);
           toast({
             title: "Error",
-            description: "Failed to create user profile. Please try again.",
+            description: error.message || "Failed to create user profile. Please try again.",
             variant: "destructive",
           });
         }
+      } else if (event === "SIGNED_OUT") {
+        navigate('/auth');
       }
     };
 
@@ -89,7 +91,7 @@ export default function AuthPage() {
               supabaseClient={supabase}
               appearance={{ theme: ThemeSupa }}
               providers={[]}
-              redirectTo={window.location.origin + window.location.pathname + window.location.search}
+              redirectTo={window.location.origin + '/auth'}
             />
           </CardContent>
         </Card>
