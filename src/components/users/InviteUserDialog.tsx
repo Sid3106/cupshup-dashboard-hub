@@ -35,17 +35,12 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
     setIsLoading(true);
 
     try {
-      const response = await fetch('/functions/v1/send-invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify(formData),
+      const { data, error } = await supabase.functions.invoke('send-invite', {
+        body: formData
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send invitation');
+      if (error) {
+        throw error;
       }
 
       toast({
@@ -62,9 +57,10 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
         city: '',
       });
     } catch (error) {
+      console.error('Error sending invitation:', error);
       toast({
         title: "Error",
-        description: "Failed to send invitation",
+        description: error.message || "Failed to send invitation",
         variant: "destructive",
       });
     } finally {
