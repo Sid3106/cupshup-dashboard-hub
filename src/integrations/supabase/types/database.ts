@@ -1,89 +1,42 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+import { Json } from './auth';
+import { Profile, Client, Vendor } from './tables';
+import { IndianCity, UserRole, BrandName } from './enums';
 
 export interface Database {
   public: {
     Tables: {
       profiles: {
-        Row: {
-          city: Database["public"]["Enums"]["indian_city"] | null
-          created_at: string
-          id: string
-          name: string | null
-          phone_number: string
-          photo_url: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          city?: Database["public"]["Enums"]["indian_city"] | null
-          created_at?: string
-          id?: string
-          name?: string | null
-          phone_number: string
-          photo_url?: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          city?: Database["public"]["Enums"]["indian_city"] | null
-          created_at?: string
-          id?: string
-          name?: string | null
-          phone_number?: string
-          photo_url?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-          user_id?: string
-        }
-      }
+        Row: Profile;
+        Insert: Omit<Profile, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Profile>;
+      };
       clients: {
-        Row: {
-          id: string
-          brand_name: Database["public"]["Enums"]["brand_name"]
-          client_name: string
-          client_email: string
-          client_phone: string
-          city: Database["public"]["Enums"]["indian_city"] | null
-          user_id: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          brand_name: Database["public"]["Enums"]["brand_name"]
-          client_name: string
-          client_email: string
-          client_phone: string
-          city?: Database["public"]["Enums"]["indian_city"] | null
-          user_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          brand_name?: Database["public"]["Enums"]["brand_name"]
-          client_name?: string
-          client_email?: string
-          client_phone?: string
-          city?: Database["public"]["Enums"]["indian_city"] | null
-          user_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-    }
+        Row: Client;
+        Insert: Omit<Client, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Client>;
+      };
+      vendors: {
+        Row: Vendor;
+        Insert: Omit<Vendor, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Vendor>;
+      };
+    };
     Enums: {
-      indian_city: "Mumbai" | "Delhi" | "Noida" | "Gurgaon" | "Pune" | "Kolkata" | "Bengaluru" | "Jaipur" | "Ahmedabad" | "Chennai"
-      user_role: "CupShup" | "Client" | "Vendor"
-      brand_name: "Flipkart" | "DCB Bank" | "VLCC" | "Spencers" | "Unity Bank" | "Tata 1mg" | "Sleepwell" | "HDFC Life" | "Farmrise" | "Natures Basket"
-    }
-  }
+      indian_city: IndianCity;
+      user_role: UserRole;
+      brand_name: BrandName;
+    };
+  };
 }

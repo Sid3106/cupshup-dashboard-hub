@@ -69,7 +69,13 @@ export const useInviteForm = (onSuccess: () => void) => {
   };
 
   const updateField = (field: keyof InviteFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      // Clear brand_name when switching away from Client role
+      if (field === 'role' && value !== 'Client') {
+        return { ...prev, [field]: value, brand_name: '' };
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   return {
