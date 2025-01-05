@@ -10,6 +10,7 @@ import UsersPage from "./pages/dashboard/users/Index";
 import UserDetailPage from "./pages/dashboard/users/[id]";
 import VendorsPage from "./pages/dashboard/vendors/Index";
 import VendorDetailPage from "./pages/dashboard/vendors/[id]";
+import ProfilePage from "./pages/dashboard/profile/Index";
 import AuthPage from "./pages/auth/Index";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

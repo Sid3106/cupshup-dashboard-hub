@@ -1,4 +1,4 @@
-import { Home, Users, Briefcase, UserCircle, Wrench, Activity, ClipboardList } from "lucide-react";
+import { Home, Activity, ClipboardList } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,48 +10,90 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
-
-const menuItems = [
-  {
-    title: "Dashboard",
-    icon: Home,
-    url: "/dashboard",
-  },
-  {
-    title: "Users",
-    icon: Users,
-    url: "/dashboard/users",
-  },
-  {
-    title: "Vendors",
-    icon: Briefcase,
-    url: "/dashboard/vendors",
-  },
-  {
-    title: "Clients",
-    icon: UserCircle,
-    url: "/dashboard/clients",
-  },
-  {
-    title: "Services",
-    icon: Wrench,
-    url: "/dashboard/services",
-  },
-  {
-    title: "Activities",
-    icon: Activity,
-    url: "/dashboard/activities",
-  },
-  {
-    title: "Tasks",
-    icon: ClipboardList,
-    url: "/dashboard/tasks",
-  },
-];
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export function DashboardSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (profile) {
+          setUserRole(profile.role);
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  const vendorMenuItems = [
+    {
+      title: "Dashboard",
+      icon: Home,
+      url: "/dashboard",
+    },
+    {
+      title: "My Activities",
+      icon: Activity,
+      url: "/dashboard/activities",
+    },
+    {
+      title: "My Tasks",
+      icon: ClipboardList,
+      url: "/dashboard/tasks",
+    },
+  ];
+
+  const defaultMenuItems = [
+    {
+      title: "Dashboard",
+      icon: Home,
+      url: "/dashboard",
+    },
+    {
+      title: "Users",
+      icon: Activity,
+      url: "/dashboard/users",
+    },
+    {
+      title: "Vendors",
+      icon: ClipboardList,
+      url: "/dashboard/vendors",
+    },
+    {
+      title: "Clients",
+      icon: Activity,
+      url: "/dashboard/clients",
+    },
+    {
+      title: "Services",
+      icon: ClipboardList,
+      url: "/dashboard/services",
+    },
+    {
+      title: "Activities",
+      icon: Activity,
+      url: "/dashboard/activities",
+    },
+    {
+      title: "Tasks",
+      icon: ClipboardList,
+      url: "/dashboard/tasks",
+    },
+  ];
+
+  const menuItems = userRole === 'Vendor' ? vendorMenuItems : defaultMenuItems;
 
   return (
     <Sidebar className="bg-white border-r">
