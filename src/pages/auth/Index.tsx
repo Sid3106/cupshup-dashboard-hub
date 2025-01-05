@@ -13,6 +13,7 @@ export default function AuthPage() {
     // Check if user is already logged in
     const checkUser = async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
+      console.log("Current session:", session); // Debug log
       if (error) {
         console.error("Auth check error:", error);
         toast({
@@ -32,7 +33,7 @@ export default function AuthPage() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event, session);
+        console.log("Auth state changed:", event, session); // Debug log
         if (event === 'SIGNED_IN') {
           navigate("/dashboard");
         }
@@ -72,6 +73,14 @@ export default function AuthPage() {
             }}
             providers={[]}
             redirectTo={window.location.origin}
+            onError={(error) => {
+              console.error("Auth error:", error); // Debug log
+              toast({
+                variant: "destructive",
+                title: "Authentication Error",
+                description: error.message
+              });
+            }}
             localization={{
               variables: {
                 sign_up: {
