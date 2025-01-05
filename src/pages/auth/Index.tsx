@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,28 +8,15 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState<any>(null);
 
   useEffect(() => {
-    // Check if there's profile data in the URL
-    const url = new URL(window.location.href);
-    const profileParam = url.searchParams.get('profile');
-    
-    if (profileParam) {
-      try {
-        const decodedProfile = JSON.parse(decodeURIComponent(profileParam));
-        setProfileData(decodedProfile);
-      } catch (error) {
-        console.error('Error parsing profile data:', error);
-      }
-    }
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN') {
+    const handleAuthStateChange = async ({ event, session }: any) => {
+      if (event === "SIGNED_IN") {
         try {
-          // If we have profile data from the URL, create the profile
+          // If we have profile data from the invite URL, create the profile
           if (profileData) {
             const { error: profileError } = await supabase
               .from('profiles')
@@ -41,73 +29,70 @@ export default function AuthPage() {
               console.error('Profile creation error:', profileError);
               throw profileError;
             }
-
-            // If the role is Client, we need to create a client entry
-            if (profileData.role === 'Client') {
-              const { error: clientError } = await supabase
-                .from('clients')
-                .insert({
-                  user_id: session.user.id,
-                  client_name: profileData.name,
-                  client_email: session.user.email,
-                  client_phone: profileData.phone_number,
-                  city: profileData.city,
-                  brand_name: profileData.brand_name
-                });
-
-              if (clientError) {
-                console.error('Client creation error:', clientError);
-                throw clientError;
-              }
-            }
           }
 
           navigate('/dashboard');
         } catch (error) {
-          console.error('Error creating profile:', error);
+          console.error('Error during profile creation:', error);
           toast({
             title: "Error",
-            description: "There was a problem setting up your profile. Please contact support.",
+            description: "Failed to create user profile. Please try again.",
             variant: "destructive",
           });
         }
       }
-    });
+    };
+
+    // Try to parse profile data from URL parameters
+    try {
+      const encodedData = searchParams.get('profile');
+      if (encodedData) {
+        const decodedData = JSON.parse(atob(encodedData));
+        setProfileData(decodedData);
+      }
+    } catch (error) {
+      console.error('Error parsing profile data:', error);
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, toast, profileData]);
+  }, [navigate, profileData, searchParams, toast]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Welcome to CupShup
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account or create a new one
-          </p>
+    <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+      <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
+        <div className="absolute inset-0 bg-zinc-900" />
+        <div className="relative z-20 flex items-center text-lg font-medium">
+          <img src="/logo.png" alt="Logo" className="h-8 w-auto" />
         </div>
-
-        <div className="mt-8">
-          <Auth
-            supabaseClient={supabase}
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: '#00A979',
-                    brandAccent: '#008F66',
-                  },
-                },
-              },
-            }}
-            providers={[]}
-          />
+        <div className="relative z-20 mt-auto">
+          <blockquote className="space-y-2">
+            <p className="text-lg">
+              Welcome to our platform. Please sign in to continue.
+            </p>
+          </blockquote>
         </div>
+      </div>
+      <div className="p-4 lg:p-8 h-full flex items-center">
+        <Card className="mx-auto w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl">Sign in</CardTitle>
+            <CardDescription>
+              Choose your preferred sign in method
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Auth
+              supabaseClient={supabase}
+              appearance={{ theme: ThemeSupa }}
+              providers={[]}
+              redirectTo={window.location.origin + window.location.pathname + window.location.search}
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
