@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,29 +7,30 @@ const corsHeaders = {
 }
 
 interface InviteRequest {
-  name: string;
-  email: string;
-  phone_number: string;
-  role: string;
-  city: string;
+  name: string
+  email: string
+  phone_number: string
+  role: string
+  city: string
 }
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-
-serve(async (req) => {
-  // Handle CORS preflight requests
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
     )
 
-    // Get request data
     const inviteData: InviteRequest = await req.json()
     console.log('Received invite request:', inviteData)
 
@@ -46,7 +47,7 @@ serve(async (req) => {
     if (existingUser) {
       return new Response(
         JSON.stringify({ 
-          error: "This email is already associated with an account. The user already has access to the platform." 
+          error: "This email is already associated with an account. The user already has access to the platform."
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -55,72 +56,43 @@ serve(async (req) => {
       )
     }
 
-    // Create the user invitation
-    const { data: authData, error: authError } = await supabaseClient.auth.admin.inviteUserByEmail(inviteData.email)
-    
-    if (authError) {
-      console.error('Auth error:', authError)
-      throw authError
-    }
-
-    if (authData.user) {
-      // Create profile for the user
-      const { error: profileError } = await supabaseClient
-        .from('profiles')
-        .insert({
-          user_id: authData.user.id,
-          role: inviteData.role,
-          city: inviteData.city,
+    // Generate a signup link with the profile data embedded in the redirect URL
+    const { data: { user }, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
+      inviteData.email,
+      {
+        redirectTo: `${Deno.env.get('SUPABASE_URL')}/auth/callback?profile=${encodeURIComponent(JSON.stringify({
           name: inviteData.name,
-          phone_number: inviteData.phone_number
-        })
-
-      if (profileError) {
-        console.error('Profile error:', profileError)
-        throw profileError
+          phone_number: inviteData.phone_number,
+          role: inviteData.role,
+          city: inviteData.city
+        }))}`
       }
+    )
 
-      // Send welcome email via Resend
-      if (RESEND_API_KEY) {
-        try {
-          console.log('Sending welcome email to:', inviteData.email)
-          const emailResponse = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${RESEND_API_KEY}`,
-            },
-            body: JSON.stringify({
-              from: 'CupShup <onboarding@resend.dev>',
-              to: [inviteData.email],
-              subject: 'Welcome to CupShup!',
-              html: `
-                <h1>Welcome to CupShup!</h1>
-                <p>Hello ${inviteData.name},</p>
-                <p>You have been invited to join CupShup as a ${inviteData.role}.</p>
-                <p>Please check your email for the invitation link to set up your account.</p>
-                <p>Best regards,<br>The CupShup Team</p>
-              `,
-            }),
-          });
-
-          if (!emailResponse.ok) {
-            const errorText = await emailResponse.text();
-            console.error('Resend API error:', errorText);
-            throw new Error(`Failed to send email: ${errorText}`);
-          }
-
-          const emailResult = await emailResponse.json();
-          console.log('Email sent successfully:', emailResult);
-        } catch (emailError) {
-          console.error('Email sending error:', emailError);
-          // We don't throw here to avoid failing the whole invitation process
-          // The user will still be invited, just without the welcome email
-        }
-      } else {
-        console.warn('RESEND_API_KEY not configured');
-      }
+    if (inviteError) {
+      console.error('Error inviting user:', inviteError)
+      throw inviteError
     }
+
+    // Send the invitation email using Resend
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
+    
+    await resend.emails.send({
+      from: 'CupShup <no-reply@cupshup.co.in>',
+      to: inviteData.email,
+      subject: 'Welcome to CupShup',
+      html: `
+        <h2>Welcome to CupShup!</h2>
+        <p>Hello ${inviteData.name},</p>
+        <p>You've been invited to join CupShup. Click the button below to accept your invitation and set up your account:</p>
+        <a href="${user?.identities?.[0]?.identity_data?.invite_link}" 
+           style="background-color: #00A979; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;">
+          Accept the Invite
+        </a>
+        <p>If you have any questions, please don't hesitate to reach out to our support team.</p>
+        <p>Best regards,<br>The CupShup Team</p>
+      `
+    })
 
     return new Response(
       JSON.stringify({ message: 'Invitation sent successfully' }),
@@ -130,7 +102,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error in send-invite function:', error)
+    console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {

@@ -1,73 +1,74 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [profileData, setProfileData] = useState(null);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      console.log("Current session:", session);
-      if (error) {
-        console.error("Auth check error:", error);
-        toast({
-          variant: "destructive",
-          title: "Authentication Error",
-          description: error.message
-        });
-        return;
+    // Check if there's profile data in the URL
+    const url = new URL(window.location.href);
+    const profileParam = url.searchParams.get('profile');
+    
+    if (profileParam) {
+      try {
+        const decodedProfile = JSON.parse(decodeURIComponent(profileParam));
+        setProfileData(decodedProfile);
+      } catch (error) {
+        console.error('Error parsing profile data:', error);
       }
-      if (session) {
-        navigate("/dashboard");
+    }
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN') {
+        try {
+          // If we have profile data from the URL, create the profile
+          if (profileData) {
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert({
+                user_id: session.user.id,
+                ...profileData
+              });
+
+            if (profileError) throw profileError;
+          }
+
+          navigate('/dashboard');
+        } catch (error) {
+          console.error('Error creating profile:', error);
+          toast({
+            title: "Error",
+            description: "There was a problem setting up your profile. Please contact support.",
+            variant: "destructive",
+          });
+        }
       }
+    });
+
+    return () => {
+      subscription.unsubscribe();
     };
-
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed:", event, session);
-        if (event === 'SIGNED_IN') {
-          navigate("/dashboard");
-        }
-        if (event === 'SIGNED_OUT') {
-          navigate("/auth");
-          toast({
-            title: "Signed out",
-            description: "You have been signed out successfully."
-          });
-        }
-        if (event === 'USER_UPDATED') {
-          console.log("User updated:", session);
-        }
-        if (event === 'PASSWORD_RECOVERY') {
-          toast({
-            title: "Password Recovery",
-            description: "Please check your email for password reset instructions."
-          });
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [navigate, toast]);
+  }, [navigate, toast, profileData]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Welcome to CupShup
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-600">
             Sign in to your account or create a new one
           </p>
         </div>
+
         <div className="mt-8">
           <Auth
             supabaseClient={supabase}
@@ -81,51 +82,8 @@ export default function AuthPage() {
                   },
                 },
               },
-              className: {
-                container: 'auth-container',
-                message: 'auth-message text-red-600',
-                button: 'button-class',
-                input: 'input-class',
-              }
             }}
             providers={[]}
-            redirectTo={window.location.origin + "/dashboard"}
-            localization={{
-              variables: {
-                sign_up: {
-                  email_label: 'Email',
-                  password_label: 'Password (minimum 6 characters)',
-                  button_label: 'Sign up',
-                  loading_button_label: 'Creating account...',
-                  social_provider_text: 'Sign up with {{provider}}',
-                  link_text: "Don't have an account? Sign up",
-                  confirmation_text: 'Check your email for the confirmation link',
-                  email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Your password'
-                },
-                sign_in: {
-                  email_label: 'Email',
-                  password_label: 'Password',
-                  button_label: 'Sign in',
-                  loading_button_label: 'Signing in...',
-                  social_provider_text: 'Sign in with {{provider}}',
-                  link_text: 'Already have an account? Sign in',
-                  email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Your password'
-                },
-                magic_link: {
-                  button_label: 'Send Magic Link',
-                  loading_button_label: 'Sending Magic Link...',
-                  link_text: 'Send a magic link email',
-                },
-                forgotten_password: {
-                  link_text: 'Forgot your password?',
-                  button_label: 'Send reset password instructions',
-                  loading_button_label: 'Sending reset instructions...',
-                  confirmation_text: 'Check your email for the password reset link',
-                },
-              },
-            }}
           />
         </div>
       </div>
