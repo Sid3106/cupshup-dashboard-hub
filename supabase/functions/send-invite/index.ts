@@ -33,19 +33,17 @@ serve(async (req) => {
     const inviteData: InviteRequest = await req.json()
     console.log('Received invite request:', inviteData)
 
-    // Check if user already exists
-    const { data: existingUsers, error: searchError } = await supabaseClient
-      .from('profiles')
-      .select('user_id')
-      .eq('user_id', (await supabaseClient.auth.admin.listUsers()).data.users.find(u => u.email === inviteData.email)?.id)
-      .maybeSingle()
-
-    if (searchError) {
-      console.error('Error searching for existing user:', searchError)
-      throw searchError
+    // First, check if the user already exists in auth.users
+    const { data: { users }, error: usersError } = await supabaseClient.auth.admin.listUsers()
+    
+    if (usersError) {
+      console.error('Error checking existing users:', usersError)
+      throw usersError
     }
 
-    if (existingUsers) {
+    const existingUser = users.find(u => u.email === inviteData.email)
+    
+    if (existingUser) {
       return new Response(
         JSON.stringify({ 
           error: "This email is already associated with an account. The user already has access to the platform." 
