@@ -66,6 +66,7 @@ export default function AuthPage() {
       console.error('Error parsing profile data:', error);
     }
 
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     // Check if user is already signed in
@@ -75,8 +76,30 @@ export default function AuthPage() {
       }
     });
 
+    // Set up error handling for auth events
+    const handleAuthError = (error: any) => {
+      console.error('Auth error:', error);
+      if (error.message?.includes('invalid_credentials')) {
+        toast({
+          title: "Invalid Credentials",
+          description: "The email or password you entered is incorrect. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Authentication Error",
+          description: error.message || "An error occurred during authentication. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    // Add error event listener
+    window.addEventListener('supabase.auth.error', handleAuthError);
+
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener('supabase.auth.error', handleAuthError);
     };
   }, [navigate, profileData, searchParams, toast]);
 
