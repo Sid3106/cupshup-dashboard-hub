@@ -10,7 +10,6 @@ export default function AuthPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is already logged in
     const checkUser = async () => {
       const { data: { session }, error } = await supabase.auth.getSession();
       console.log("Current session:", session);
@@ -30,7 +29,6 @@ export default function AuthPage() {
 
     checkUser();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event, session);
@@ -73,20 +71,24 @@ export default function AuthPage() {
               className: {
                 container: 'auth-container',
                 message: 'auth-message text-red-600',
+                button: 'button-class',
+                input: 'input-class',
               }
             }}
             providers={[]}
-            redirectTo={`${window.location.origin}/dashboard`}
+            redirectTo={window.location.origin + "/dashboard"}
             localization={{
               variables: {
                 sign_up: {
                   email_label: 'Email',
-                  password_label: 'Password',
+                  password_label: 'Password (minimum 6 characters)',
                   button_label: 'Sign up',
                   loading_button_label: 'Creating account...',
                   social_provider_text: 'Sign up with {{provider}}',
                   link_text: "Don't have an account? Sign up",
                   confirmation_text: 'Check your email for the confirmation link',
+                  email_input_placeholder: 'Your email address',
+                  password_input_placeholder: 'Your password',
                 },
                 sign_in: {
                   email_label: 'Email',
@@ -95,6 +97,8 @@ export default function AuthPage() {
                   loading_button_label: 'Signing in...',
                   social_provider_text: 'Sign in with {{provider}}',
                   link_text: 'Already have an account? Sign in',
+                  email_input_placeholder: 'Your email address',
+                  password_input_placeholder: 'Your password',
                 },
                 magic_link: {
                   button_label: 'Send Magic Link',
