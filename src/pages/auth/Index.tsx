@@ -34,11 +34,21 @@ export default function AuthPage() {
           navigate('/dashboard');
         } catch (error: any) {
           console.error('Error during profile creation:', error);
-          toast({
-            title: "Error",
-            description: error.message || "Failed to create user profile. Please try again.",
-            variant: "destructive",
-          });
+          
+          // Check if it's a user_already_exists error
+          if (error.message?.includes('user_already_exists')) {
+            toast({
+              title: "Account Exists",
+              description: "An account with this email already exists. Please sign in instead.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Error",
+              description: error.message || "Failed to create user profile. Please try again.",
+              variant: "destructive",
+            });
+          }
         }
       } else if (event === "SIGNED_OUT") {
         navigate('/auth');
@@ -62,6 +72,22 @@ export default function AuthPage() {
       subscription.unsubscribe();
     };
   }, [navigate, profileData, searchParams, toast]);
+
+  // Handle auth errors
+  const handleAuthError = (error: Error) => {
+    if (error.message?.includes('user_already_exists')) {
+      toast({
+        title: "Account Exists",
+        description: "An account with this email already exists. Please sign in instead.",
+      });
+    } else {
+      toast({
+        title: "Authentication Error",
+        description: error.message || "An error occurred during authentication.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
@@ -92,6 +118,7 @@ export default function AuthPage() {
               appearance={{ theme: ThemeSupa }}
               providers={[]}
               redirectTo={window.location.origin + '/auth'}
+              onError={handleAuthError}
             />
           </CardContent>
         </Card>
