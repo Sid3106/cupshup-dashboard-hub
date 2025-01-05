@@ -73,22 +73,6 @@ export default function AuthPage() {
     };
   }, [navigate, profileData, searchParams, toast]);
 
-  // Handle auth errors
-  const handleAuthError = (error: Error) => {
-    if (error.message?.includes('user_already_exists')) {
-      toast({
-        title: "Account Exists",
-        description: "An account with this email already exists. Please sign in instead.",
-      });
-    } else {
-      toast({
-        title: "Authentication Error",
-        description: error.message || "An error occurred during authentication.",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
@@ -118,7 +102,25 @@ export default function AuthPage() {
               appearance={{ theme: ThemeSupa }}
               providers={[]}
               redirectTo={window.location.origin + '/auth'}
-              onError={handleAuthError}
+              view="sign_in"
+              showLinks={true}
+              {...{
+                localization: {
+                  variables: {
+                    sign_up: {
+                      email_label: "Email",
+                      password_label: "Password",
+                      email_input_placeholder: "Your email address",
+                      password_input_placeholder: "Your password",
+                      button_label: "Sign up",
+                      loading_button_label: "Signing up ...",
+                      social_provider_text: "Sign in with {{provider}}",
+                      link_text: "Don't have an account? Sign up",
+                      confirmation_text: "Check your email for the confirmation link"
+                    }
+                  }
+                }
+              }}
             />
           </CardContent>
         </Card>
