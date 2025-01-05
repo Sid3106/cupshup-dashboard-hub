@@ -37,15 +37,18 @@ export default function AuthPage() {
         }
         if (event === 'SIGNED_OUT') {
           navigate("/auth");
+          toast({
+            title: "Signed out",
+            description: "You have been signed out successfully."
+          });
         }
         if (event === 'USER_UPDATED') {
           console.log("User updated:", session);
         }
-        // Handle auth errors
-        if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+        if (event === 'PASSWORD_RECOVERY') {
           toast({
-            title: "Session ended",
-            description: "Please sign in again to continue."
+            title: "Password Recovery",
+            description: "Please check your email for password reset instructions."
           });
         }
       }
