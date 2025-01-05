@@ -9,6 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const menuItems = [
   {
@@ -49,6 +50,9 @@ const menuItems = [
 ];
 
 export function DashboardSidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   return (
     <Sidebar className="bg-white border-r">
       <SidebarContent>
@@ -61,11 +65,17 @@ export function DashboardSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url} className="flex items-center gap-2 text-gray-600 hover:text-[#00A979] hover:bg-[#00A979]/5">
+                  <SidebarMenuButton
+                    asChild
+                    className={location.pathname === item.url ? "text-[#00A979] bg-[#00A979]/5" : ""}
+                  >
+                    <button
+                      onClick={() => navigate(item.url)}
+                      className="flex items-center gap-2 text-gray-600 hover:text-[#00A979] hover:bg-[#00A979]/5 w-full"
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                    </a>
+                    </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

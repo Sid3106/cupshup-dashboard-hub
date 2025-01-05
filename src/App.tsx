@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardPage from "./pages/dashboard/Index";
+import UsersPage from "./pages/dashboard/users/Index";
+import UserDetailPage from "./pages/dashboard/users/[id]";
 import AuthPage from "./pages/auth/Index";
 
 const queryClient = new QueryClient();
@@ -56,6 +58,22 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/users"
+            element={
+              <ProtectedRoute>
+                <UsersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/users/:id"
+            element={
+              <ProtectedRoute>
+                <UserDetailPage />
               </ProtectedRoute>
             }
           />

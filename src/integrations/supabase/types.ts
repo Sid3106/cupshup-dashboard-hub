@@ -11,8 +11,10 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          city: Database["public"]["Enums"]["indian_city"] | null
           created_at: string
           id: string
+          name: string | null
           phone_number: string
           photo_url: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -20,8 +22,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          city?: Database["public"]["Enums"]["indian_city"] | null
           created_at?: string
           id?: string
+          name?: string | null
           phone_number: string
           photo_url?: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -29,8 +33,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          city?: Database["public"]["Enums"]["indian_city"] | null
           created_at?: string
           id?: string
+          name?: string | null
           phone_number?: string
           photo_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -47,6 +53,17 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      indian_city:
+        | "Mumbai"
+        | "Delhi"
+        | "Noida"
+        | "Gurgaon"
+        | "Pune"
+        | "Kolkata"
+        | "Bengaluru"
+        | "Jaipur"
+        | "Ahmedabad"
+        | "Chennai"
       user_role: "CupShup" | "Client" | "Vendor"
     }
     CompositeTypes: {
