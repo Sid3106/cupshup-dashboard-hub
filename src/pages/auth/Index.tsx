@@ -37,7 +37,29 @@ export default function AuthPage() {
                 ...profileData
               });
 
-            if (profileError) throw profileError;
+            if (profileError) {
+              console.error('Profile creation error:', profileError);
+              throw profileError;
+            }
+
+            // If the role is Client, we need to create a client entry
+            if (profileData.role === 'Client') {
+              const { error: clientError } = await supabase
+                .from('clients')
+                .insert({
+                  user_id: session.user.id,
+                  client_name: profileData.name,
+                  client_email: session.user.email,
+                  client_phone: profileData.phone_number,
+                  city: profileData.city,
+                  brand_name: profileData.brand_name
+                });
+
+              if (clientError) {
+                console.error('Client creation error:', clientError);
+                throw clientError;
+              }
+            }
           }
 
           navigate('/dashboard');
