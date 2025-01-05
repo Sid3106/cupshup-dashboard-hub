@@ -91,10 +91,7 @@ export default function AuthPage() {
                   link_text: "Don't have an account? Sign up",
                   confirmation_text: 'Check your email for the confirmation link',
                   email_input_placeholder: 'Your email address',
-                  password_input_placeholder: 'Your password',
-                  error: {
-                    message: 'An error occurred during sign up. If you already have an account, please sign in instead.'
-                  }
+                  password_input_placeholder: 'Your password'
                 },
                 sign_in: {
                   email_label: 'Email',
