@@ -14,9 +14,10 @@ export default function AuthPage() {
 
   useEffect(() => {
     const handleAuthStateChange = async ({ event, session }: any) => {
+      console.log("Auth state changed:", event, session);
+      
       if (event === "SIGNED_IN") {
         try {
-          // If we have profile data from the invite URL, create the profile
           if (profileData) {
             const { error: profileError } = await supabase
               .from('profiles')
@@ -34,23 +35,22 @@ export default function AuthPage() {
           navigate('/dashboard');
         } catch (error: any) {
           console.error('Error during profile creation:', error);
-          
-          // Check if it's a user_already_exists error
-          if (error.message?.includes('user_already_exists')) {
-            toast({
-              title: "Account Exists",
-              description: "An account with this email already exists. Please sign in instead.",
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Error",
-              description: error.message || "Failed to create user profile. Please try again.",
-              variant: "destructive",
-            });
-          }
+          toast({
+            title: "Error",
+            description: error.message || "Failed to create user profile. Please try again.",
+            variant: "destructive",
+          });
         }
       } else if (event === "SIGNED_OUT") {
+        navigate('/auth');
+      } else if (event === "USER_UPDATED") {
+        console.log("User updated:", session);
+      } else if (event === "PASSWORD_RECOVERY") {
+        toast({
+          title: "Password Recovery",
+          description: "Please check your email for password reset instructions.",
+        });
+      } else if (event === "USER_DELETED") {
         navigate('/auth');
       }
     };
@@ -67,6 +67,13 @@ export default function AuthPage() {
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+
+    // Check if user is already signed in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/dashboard');
+      }
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -99,25 +106,43 @@ export default function AuthPage() {
           <CardContent>
             <Auth
               supabaseClient={supabase}
-              appearance={{ theme: ThemeSupa }}
+              appearance={{ 
+                theme: ThemeSupa,
+                variables: {
+                  default: {
+                    colors: {
+                      brand: '#404040',
+                      brandAccent: '#2d2d2d'
+                    }
+                  }
+                }
+              }}
               providers={[]}
               redirectTo={window.location.origin + '/auth'}
               view="sign_in"
               showLinks={true}
-              {...{
-                localization: {
-                  variables: {
-                    sign_up: {
-                      email_label: "Email",
-                      password_label: "Password",
-                      email_input_placeholder: "Your email address",
-                      password_input_placeholder: "Your password",
-                      button_label: "Sign up",
-                      loading_button_label: "Signing up ...",
-                      social_provider_text: "Sign in with {{provider}}",
-                      link_text: "Don't have an account? Sign up",
-                      confirmation_text: "Check your email for the confirmation link"
-                    }
+              localization={{
+                variables: {
+                  sign_up: {
+                    email_label: "Email",
+                    password_label: "Password",
+                    email_input_placeholder: "Your email address",
+                    password_input_placeholder: "Your password",
+                    button_label: "Sign up",
+                    loading_button_label: "Signing up ...",
+                    social_provider_text: "Sign in with {{provider}}",
+                    link_text: "Don't have an account? Sign up",
+                    confirmation_text: "Check your email for the confirmation link"
+                  },
+                  sign_in: {
+                    email_label: "Email",
+                    password_label: "Password",
+                    email_input_placeholder: "Your email address",
+                    password_input_placeholder: "Your password",
+                    button_label: "Sign in",
+                    loading_button_label: "Signing in ...",
+                    social_provider_text: "Sign in with {{provider}}",
+                    link_text: "Already have an account? Sign in"
                   }
                 }
               }}
