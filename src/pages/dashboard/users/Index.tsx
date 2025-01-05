@@ -13,7 +13,9 @@ interface Profile {
   name: string | null;
   role: "CupShup" | "Vendor" | "Client";
   city: string | null;
-  email: string;
+  phone_number: string;
+  user_id: string;
+  email?: string;
 }
 
 export default function UsersPage() {

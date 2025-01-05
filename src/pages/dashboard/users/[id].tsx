@@ -13,7 +13,8 @@ interface UserProfile {
   role: "CupShup" | "Vendor" | "Client";
   city: string | null;
   phone_number: string;
-  email: string;
+  user_id: string;
+  email?: string;
   created_at: string;
   updated_at: string;
 }
