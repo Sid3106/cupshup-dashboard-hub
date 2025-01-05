@@ -4,51 +4,50 @@ import { corsHeaders } from '../_shared/cors.ts'
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Create Supabase client with service role key
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
+
+    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get the user's token from the request header
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('No authorization header')
-    }
-    
-    // Verify the user is authenticated and has the CupShup role
+    // Verify the user's token and get their data
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
       authHeader.replace('Bearer ', '')
     )
-    if (authError) throw authError
-    if (!user) throw new Error('Not authenticated')
+    if (authError || !user) {
+      throw new Error('Not authenticated')
+    }
 
-    const { data: userProfile, error: profileError } = await supabaseClient
+    // Check if user has CupShup role
+    const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('role')
       .eq('user_id', user.id)
-      .maybeSingle()
-    
-    if (profileError) throw profileError
-    if (!userProfile || userProfile.role !== 'CupShup') {
-      throw new Error('Unauthorized')
+      .single()
+
+    if (profileError || !profile || profile.role !== 'CupShup') {
+      throw new Error('Unauthorized: Requires CupShup role')
     }
 
-    // Fetch all users with their profiles
+    // Fetch all profiles
     const { data: profiles, error: profilesError } = await supabaseClient
       .from('profiles')
       .select('*')
     if (profilesError) throw profilesError
-    if (!profiles) throw new Error('No profiles found')
 
     // Get all user emails from auth.users
     const { data: { users }, error: usersError } = await supabaseClient.auth.admin.listUsers()
     if (usersError) throw usersError
-    if (!users) throw new Error('No users found')
 
     // Combine profile data with user emails
     const usersWithEmail = profiles.map((profile) => ({
@@ -64,12 +63,11 @@ Deno.serve(async (req) => {
       },
     )
   } catch (error) {
-    console.error('Error:', error.message)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: error.message.includes('Unauthorized') ? 403 : 400,
       },
     )
   }
