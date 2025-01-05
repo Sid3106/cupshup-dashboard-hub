@@ -33,9 +33,18 @@ Deno.serve(async (req) => {
       .from('profiles')
       .select('role')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
-    if (profileError || !profile || profile.role !== 'CupShup') {
+    if (profileError) {
+      console.error('Profile error:', profileError)
+      throw new Error('Error fetching user profile')
+    }
+
+    if (!profile) {
+      throw new Error('No profile found for user')
+    }
+
+    if (profile.role !== 'CupShup') {
       throw new Error('Unauthorized: Requires CupShup role')
     }
 
@@ -43,11 +52,28 @@ Deno.serve(async (req) => {
     const { data: profiles, error: profilesError } = await supabaseClient
       .from('profiles')
       .select('*')
-    if (profilesError) throw profilesError
+    
+    if (profilesError) {
+      console.error('Profiles error:', profilesError)
+      throw profilesError
+    }
+
+    if (!profiles || profiles.length === 0) {
+      return new Response(
+        JSON.stringify([]),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      )
+    }
 
     // Get all user emails from auth.users
     const { data: { users }, error: usersError } = await supabaseClient.auth.admin.listUsers()
-    if (usersError) throw usersError
+    if (usersError) {
+      console.error('Users error:', usersError)
+      throw usersError
+    }
 
     // Combine profile data with user emails
     const usersWithEmail = profiles.map((profile) => ({
@@ -63,6 +89,7 @@ Deno.serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error in get-users function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {

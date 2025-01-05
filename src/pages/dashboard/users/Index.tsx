@@ -24,14 +24,39 @@ export default function UsersPage() {
   useEffect(() => {
     const fetchCurrentUserRole = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profile } = await supabase
+      if (!session?.user) {
+        setIsLoading(false);
+        navigate("/auth");
+        return;
+      }
+
+      try {
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
         
-        setCurrentUserRole(profile?.role || null);
+        if (error) throw error;
+        
+        if (!profile) {
+          toast({
+            title: "Profile not found",
+            description: "Please contact an administrator to set up your profile.",
+            variant: "destructive",
+          });
+          navigate("/auth");
+          return;
+        }
+
+        setCurrentUserRole(profile.role);
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch user role. Please try again later.",
+          variant: "destructive",
+        });
       }
     };
 
@@ -43,27 +68,22 @@ export default function UsersPage() {
       }
 
       try {
-        const response = await fetch(
-          'https://zdslyhsaebzabstxskgd.functions.supabase.co/get-users',
-          {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-          }
-        );
+        const response = await supabase.functions.invoke('get-users', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch users');
+        if (response.error) {
+          throw new Error(response.error.message || 'Failed to fetch users');
         }
 
-        const users = await response.json();
-        setUsers(users);
+        setUsers(response.data || []);
       } catch (error) {
         console.error('Error fetching users:', error);
         toast({
           title: "Error",
-          description: error.message,
+          description: error.message || "Failed to fetch users",
           variant: "destructive",
         });
       } finally {
@@ -73,7 +93,7 @@ export default function UsersPage() {
 
     fetchCurrentUserRole();
     fetchUsers();
-  }, [toast]);
+  }, [navigate, toast]);
 
   if (currentUserRole !== "CupShup") {
     return (
