@@ -2,18 +2,22 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    // Create Supabase client with service role key
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // First verify the user is authenticated and has CupShup role
+    // Get the user's token from the request header
     const authHeader = req.headers.get('Authorization')!
+    
+    // Verify the user is authenticated and has the CupShup role
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
       authHeader.replace('Bearer ', '')
     )
@@ -29,17 +33,17 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    // Fetch all profiles
+    // Fetch all users with their profiles
     const { data: profiles, error: profilesError } = await supabaseClient
       .from('profiles')
       .select('*')
     if (profilesError) throw profilesError
 
-    // Fetch all users
+    // Get all user emails from auth.users
     const { data: { users }, error: usersError } = await supabaseClient.auth.admin.listUsers()
     if (usersError) throw usersError
 
-    // Combine the data
+    // Combine profile data with user emails
     const usersWithEmail = profiles.map((profile) => ({
       ...profile,
       email: users.find(user => user.id === profile.user_id)?.email || '',
@@ -53,6 +57,7 @@ Deno.serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error:', error.message)
     return new Response(
       JSON.stringify({ error: error.message }),
       {

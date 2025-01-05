@@ -17,6 +17,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -36,7 +37,10 @@ export default function UsersPage() {
 
     const fetchUsers = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         const response = await fetch(
@@ -49,17 +53,21 @@ export default function UsersPage() {
         );
 
         if (!response.ok) {
-          throw new Error('Failed to fetch users');
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch users');
         }
 
         const users = await response.json();
         setUsers(users);
       } catch (error) {
+        console.error('Error fetching users:', error);
         toast({
           title: "Error",
           description: error.message,
           variant: "destructive",
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -72,6 +80,16 @@ export default function UsersPage() {
       <DashboardLayout>
         <div className="text-center mt-8">
           You don't have permission to access this page.
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center mt-8">
+          Loading...
         </div>
       </DashboardLayout>
     );
