@@ -8,6 +8,7 @@ interface InviteFormData {
   phone_number: string;
   role: string;
   city: string;
+  brand_name?: string;
 }
 
 const initialFormData: InviteFormData = {
@@ -16,6 +17,7 @@ const initialFormData: InviteFormData = {
   phone_number: '',
   role: '',
   city: '',
+  brand_name: '',
 };
 
 export const useInviteForm = (onSuccess: () => void) => {
@@ -28,6 +30,11 @@ export const useInviteForm = (onSuccess: () => void) => {
     setIsLoading(true);
 
     try {
+      // Validate brand name for client role
+      if (formData.role === 'Client' && !formData.brand_name) {
+        throw new Error('Brand name is required for client role');
+      }
+
       const { data, error } = await supabase.functions.invoke('send-invite', {
         body: formData
       });
@@ -46,7 +53,6 @@ export const useInviteForm = (onSuccess: () => void) => {
     } catch (error) {
       console.error('Error sending invitation:', error);
       
-      // Check if it's a user already exists error
       const errorMessage = error.message || "Failed to send invitation";
       const description = errorMessage.includes("already associated with an account") 
         ? "This email is already associated with an account. The user already has access to the platform."

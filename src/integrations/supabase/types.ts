@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      clients: {
+        Row: {
+          brand_name: Database["public"]["Enums"]["brand_name"]
+          city: Database["public"]["Enums"]["indian_city"] | null
+          client_email: string
+          client_name: string
+          client_phone: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          brand_name: Database["public"]["Enums"]["brand_name"]
+          city?: Database["public"]["Enums"]["indian_city"] | null
+          client_email: string
+          client_name: string
+          client_phone: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          brand_name?: Database["public"]["Enums"]["brand_name"]
+          city?: Database["public"]["Enums"]["indian_city"] | null
+          client_email?: string
+          client_name?: string
+          client_phone?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           city: Database["public"]["Enums"]["indian_city"] | null
@@ -86,6 +122,17 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      brand_name:
+        | "Flipkart"
+        | "DCB Bank"
+        | "VLCC"
+        | "Spencers"
+        | "Unity Bank"
+        | "Tata 1mg"
+        | "Sleepwell"
+        | "HDFC Life"
+        | "Farmrise"
+        | "Natures Basket"
       indian_city:
         | "Mumbai"
         | "Delhi"
