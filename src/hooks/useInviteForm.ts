@@ -45,9 +45,16 @@ export const useInviteForm = (onSuccess: () => void) => {
       setFormData(initialFormData);
     } catch (error) {
       console.error('Error sending invitation:', error);
+      
+      // Check if it's a user already exists error
+      const errorMessage = error.message || "Failed to send invitation";
+      const description = errorMessage.includes("already associated with an account") 
+        ? "This email is already associated with an account. The user already has access to the platform."
+        : errorMessage;
+
       toast({
         title: "Error",
-        description: error.message || "Failed to send invitation",
+        description,
         variant: "destructive",
       });
     } finally {

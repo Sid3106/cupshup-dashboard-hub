@@ -33,6 +33,30 @@ serve(async (req) => {
     const inviteData: InviteRequest = await req.json()
     console.log('Received invite request:', inviteData)
 
+    // Check if user already exists
+    const { data: existingUsers, error: searchError } = await supabaseClient
+      .from('profiles')
+      .select('user_id, email')
+      .eq('email', inviteData.email)
+      .maybeSingle()
+
+    if (searchError) {
+      console.error('Error searching for existing user:', searchError)
+      throw searchError
+    }
+
+    if (existingUsers) {
+      return new Response(
+        JSON.stringify({ 
+          error: "This email is already associated with an account. The user already has access to the platform." 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      )
+    }
+
     // Create the user invitation
     const { data: authData, error: authError } = await supabaseClient.auth.admin.inviteUserByEmail(inviteData.email)
     
@@ -50,7 +74,8 @@ serve(async (req) => {
           role: inviteData.role,
           city: inviteData.city,
           name: inviteData.name,
-          phone_number: inviteData.phone_number
+          phone_number: inviteData.phone_number,
+          email: inviteData.email
         })
 
       if (profileError) {
