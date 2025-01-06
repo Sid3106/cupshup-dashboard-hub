@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { useUser } from "@supabase/auth-helpers-react";
+import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ActivityBasicFields } from "./form/ActivityBasicFields";
@@ -44,7 +44,7 @@ const BRAND_OPTIONS: BrandName[] = [
 
 export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   const { toast } = useToast();
-  const user = useUser();
+  const session = useSession();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -63,7 +63,8 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
 
   const onSubmit = async (data: FormData) => {
     try {
-      if (!user) {
+      if (!session?.user) {
+        console.log('No session found:', session);
         toast({
           title: "Error",
           description: "You must be logged in to create an activity",
@@ -72,6 +73,8 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
         return;
       }
 
+      console.log('Attempting to create activity with user:', session.user.id);
+      
       const { error } = await supabase
         .from('activities')
         .insert({
@@ -84,10 +87,13 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
           longitude: data.longitude,
           contract_value: data.contract_value,
           activity_description: data.activity_description,
-          created_by: user.id,
+          created_by: session.user.id,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -99,7 +105,7 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
       console.error('Error creating activity:', error);
       toast({
         title: "Error",
-        description: "Failed to create activity",
+        description: "Failed to create activity. Please check the console for details.",
         variant: "destructive",
       });
     }
