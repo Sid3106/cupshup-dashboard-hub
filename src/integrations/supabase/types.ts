@@ -60,6 +60,60 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_mapped: {
+        Row: {
+          activity_id: string
+          assigned_by: string
+          created_at: string
+          id: string
+          message: string | null
+          updated_at: string
+          vendor_email: string
+          vendor_id: string
+          vendor_name: string
+          vendor_phone: string
+        }
+        Insert: {
+          activity_id: string
+          assigned_by: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          updated_at?: string
+          vendor_email: string
+          vendor_id: string
+          vendor_name: string
+          vendor_phone: string
+        }
+        Update: {
+          activity_id?: string
+          assigned_by?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          updated_at?: string
+          vendor_email?: string
+          vendor_id?: string
+          vendor_name?: string
+          vendor_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_mapped_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_mapped_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           brand_name: Database["public"]["Enums"]["brand_name"]
