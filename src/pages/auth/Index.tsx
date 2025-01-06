@@ -11,12 +11,14 @@ export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [profileData, setProfileData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const handleAuthStateChange = async ({ event, session }: any) => {
       console.log("Auth state changed:", event, session);
       
       if (event === "SIGNED_IN") {
+        setIsLoading(true);
         try {
           if (profileData) {
             const { error: profileError } = await supabase
@@ -40,17 +42,10 @@ export default function AuthPage() {
             description: error.message || "Failed to create user profile. Please try again.",
             variant: "destructive",
           });
+        } finally {
+          setIsLoading(false);
         }
       } else if (event === "SIGNED_OUT") {
-        navigate('/auth');
-      } else if (event === "USER_UPDATED") {
-        console.log("User updated:", session);
-      } else if (event === "PASSWORD_RECOVERY") {
-        toast({
-          title: "Password Recovery",
-          description: "Please check your email for password reset instructions.",
-        });
-      } else if (event === "USER_DELETED") {
         navigate('/auth');
       }
     };
@@ -76,30 +71,8 @@ export default function AuthPage() {
       }
     });
 
-    // Set up error handling for auth events
-    const handleAuthError = (error: any) => {
-      console.error('Auth error:', error);
-      if (error.message?.includes('invalid_credentials')) {
-        toast({
-          title: "Invalid Credentials",
-          description: "The email or password you entered is incorrect. Please try again.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Authentication Error",
-          description: error.message || "An error occurred during authentication. Please try again.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    // Add error event listener
-    window.addEventListener('supabase.auth.error', handleAuthError);
-
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener('supabase.auth.error', handleAuthError);
     };
   }, [navigate, profileData, searchParams, toast]);
 
@@ -141,7 +114,7 @@ export default function AuthPage() {
                 }
               }}
               providers={[]}
-              redirectTo={window.location.origin + '/auth'}
+              redirectTo={window.location.origin + '/auth/callback'}
               view="sign_in"
               showLinks={true}
               localization={{
