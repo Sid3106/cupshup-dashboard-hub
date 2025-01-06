@@ -15,10 +15,10 @@ interface CreateActivityFormProps {
   onSuccess: () => void;
 }
 
-const formSchema = z.object({
-  brand: z.string(),
-  city: z.string(),
-  location: z.string(),
+export const formSchema = z.object({
+  brand: z.string().min(1, "Brand is required"),
+  city: z.string().min(1, "City is required"),
+  location: z.string().min(1, "Location is required"),
   start_date: z.date(),
   end_date: z.date(),
   latitude: z.number().optional(),
@@ -27,7 +27,7 @@ const formSchema = z.object({
   activity_description: z.string().optional()
 });
 
-type FormData = z.infer<typeof formSchema>;
+export type FormData = z.infer<typeof formSchema>;
 
 const BRAND_OPTIONS: BrandName[] = [
   "Flipkart",
@@ -49,11 +49,11 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      brand: undefined,
-      city: undefined,
+      brand: "",
+      city: "",
       location: "",
-      start_date: undefined,
-      end_date: undefined,
+      start_date: new Date(),
+      end_date: new Date(),
       latitude: undefined,
       longitude: undefined,
       contract_value: undefined,
@@ -74,12 +74,18 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
 
       const { error } = await supabase
         .from('activities')
-        .insert([{
-          ...data,
+        .insert({
+          brand: data.brand,
+          city: data.city,
+          location: data.location,
           start_date: data.start_date.toISOString(),
           end_date: data.end_date.toISOString(),
+          latitude: data.latitude,
+          longitude: data.longitude,
+          contract_value: data.contract_value,
+          activity_description: data.activity_description,
           created_by: user.id,
-        }]);
+        });
 
       if (error) throw error;
 
