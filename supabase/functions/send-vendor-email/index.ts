@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
     `;
 
     const { data, error } = await resend.emails.send({
-      from: 'Acme <onboarding@resend.dev>', // Using Resend's test domain
+      from: 'CupShup AI <no-reply@cs.cupshup.ai>',
       to: [vendor_email],
       subject: `Hey ${vendor_name}, an activity has been assigned to you`,
       html: emailHtml,

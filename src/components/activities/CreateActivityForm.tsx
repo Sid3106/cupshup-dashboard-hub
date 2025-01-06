@@ -15,7 +15,7 @@ interface CreateActivityFormProps {
   onSuccess: () => void;
 }
 
-export const formSchema = z.object({
+const formSchema = z.object({
   brand: z.string().min(1, "Brand is required"),
   city: z.string().min(1, "City is required"),
   location: z.string().min(1, "Location is required"),

@@ -40,11 +40,6 @@ export default function ActivitiesPage() {
     }
   };
 
-  const handleAssign = (activityId: string) => {
-    // TODO: Implement assignment functionality
-    console.log('Assigning activity:', activityId);
-  };
-
   return (
     <DashboardLayout>
       <div className="flex justify-between items-center mb-6">
@@ -67,7 +62,6 @@ export default function ActivitiesPage() {
             <ActivityCard
               key={activity.id}
               activity={activity}
-              onAssign={handleAssign}
             />
           ))}
         </div>
