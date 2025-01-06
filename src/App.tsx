@@ -11,6 +11,7 @@ import UserDetailPage from "./pages/dashboard/users/[id]";
 import VendorsPage from "./pages/dashboard/vendors/Index";
 import VendorDetailPage from "./pages/dashboard/vendors/[id]";
 import ClientsPage from "./pages/dashboard/clients/Index";
+import ActivitiesPage from "./pages/dashboard/activities/Index";
 import ProfilePage from "./pages/dashboard/profile/Index";
 import AuthPage from "./pages/auth/Index";
 
@@ -110,6 +111,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ClientsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/activities"
+            element={
+              <ProtectedRoute>
+                <ActivitiesPage />
               </ProtectedRoute>
             }
           />

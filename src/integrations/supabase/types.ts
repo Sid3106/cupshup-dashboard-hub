@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activities: {
+        Row: {
+          activity_description: string | null
+          activity_id: string | null
+          brand: string
+          city: string
+          contract_value: number | null
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          latitude: number | null
+          location: string
+          longitude: number | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          activity_description?: string | null
+          activity_id?: string | null
+          brand: string
+          city: string
+          contract_value?: number | null
+          created_at?: string
+          created_by: string
+          end_date: string
+          id?: string
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          activity_description?: string | null
+          activity_id?: string | null
+          brand?: string
+          city?: string
+          contract_value?: number | null
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           brand_name: Database["public"]["Enums"]["brand_name"]
