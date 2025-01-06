@@ -58,7 +58,6 @@ export function DashboardHeader() {
   return (
     <header className="border-b bg-white">
       <div className="flex h-16 items-center px-4 gap-4">
-        <h1 className="text-2xl font-roboto font-bold text-primary">Menu</h1>
         <div className="ml-auto flex items-center gap-4">
           <Button variant="ghost" size="icon" className="text-gray-600 hover:text-primary hover:bg-primary/5">
             <Bell className="h-5 w-5" />
