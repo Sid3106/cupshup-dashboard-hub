@@ -1,20 +1,20 @@
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
-import { useQuery } from "@tanstack/react-query";
+import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@supabase/auth-helpers-react";
 import { ActivityBasicFields } from "./form/ActivityBasicFields";
 import { ActivityDateFields } from "./form/ActivityDateFields";
 import { ActivityOptionalFields } from "./form/ActivityOptionalFields";
+import { BrandName } from "@/integrations/supabase/types/enums";
 
 interface CreateActivityFormProps {
   onSuccess: () => void;
 }
 
 export interface FormData {
-  brand: string;
+  brand: BrandName;
   city: string;
   location: string;
   start_date: Date;
@@ -25,27 +25,23 @@ export interface FormData {
   activity_description?: string;
 }
 
+const BRAND_OPTIONS: BrandName[] = [
+  "Flipkart",
+  "DCB Bank",
+  "VLCC",
+  "Spencers",
+  "Unity Bank",
+  "Tata 1mg",
+  "Sleepwell",
+  "HDFC Life",
+  "Farmrise",
+  "Natures Basket"
+];
+
 export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   const { toast } = useToast();
   const user = useUser();
   const form = useForm<FormData>();
-
-  // Fetch brands from clients table using a different query approach
-  const { data: brands = [] } = useQuery({
-    queryKey: ['brands'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('brand_name')
-        .order('brand_name');
-      
-      if (error) throw error;
-      
-      // Remove duplicates using Set
-      const uniqueBrands = [...new Set(data.map(d => d.brand_name))];
-      return uniqueBrands;
-    }
-  });
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -79,7 +75,7 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <ActivityBasicFields form={form} brands={brands} />
+        <ActivityBasicFields form={form} brands={BRAND_OPTIONS} />
         <ActivityDateFields form={form} />
         <ActivityOptionalFields form={form} />
 

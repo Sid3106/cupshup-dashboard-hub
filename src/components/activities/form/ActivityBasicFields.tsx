@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { CITIES } from "@/constants/formOptions";
 import { UseFormReturn } from "react-hook-form";
 import { FormData } from "../CreateActivityForm";
+import { BrandName } from "@/integrations/supabase/types/enums";
 
 interface ActivityBasicFieldsProps {
   form: UseFormReturn<FormData>;
-  brands: string[];
+  brands: BrandName[];
 }
 
 export function ActivityBasicFields({ form, brands }: ActivityBasicFieldsProps) {
@@ -26,7 +27,7 @@ export function ActivityBasicFields({ form, brands }: ActivityBasicFieldsProps) 
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {brands?.map((brand) => (
+                {brands.map((brand) => (
                   <SelectItem key={brand} value={brand}>
                     {brand}
                   </SelectItem>
