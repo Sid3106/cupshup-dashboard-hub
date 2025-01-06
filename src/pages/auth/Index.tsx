@@ -12,6 +12,7 @@ export default function AuthPage() {
   const { toast } = useToast();
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleAuthStateChange = async ({ event, session }: any) => {
@@ -66,6 +67,7 @@ export default function AuthPage() {
           navigate('/dashboard');
         } catch (error: any) {
           console.error('Error during sign in:', error);
+          setAuthError(error.message);
           toast({
             title: "Error",
             description: error.message || "An error occurred during sign in. Please try again.",
@@ -76,6 +78,7 @@ export default function AuthPage() {
         }
       } else if (event === "SIGNED_OUT") {
         console.log("User signed out");
+        setAuthError(null);
       }
     };
 
@@ -138,6 +141,11 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {authError && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {authError}
+              </div>
+            )}
             <Auth
               supabaseClient={supabase}
               appearance={{ 
