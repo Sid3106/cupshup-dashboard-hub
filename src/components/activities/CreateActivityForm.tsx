@@ -8,22 +8,26 @@ import { ActivityBasicFields } from "./form/ActivityBasicFields";
 import { ActivityDateFields } from "./form/ActivityDateFields";
 import { ActivityOptionalFields } from "./form/ActivityOptionalFields";
 import { BrandName } from "@/integrations/supabase/types/enums";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 interface CreateActivityFormProps {
   onSuccess: () => void;
 }
 
-export interface FormData {
-  brand: BrandName;
-  city: string;
-  location: string;
-  start_date: Date;
-  end_date: Date;
-  latitude?: number;
-  longitude?: number;
-  contract_value?: number;
-  activity_description?: string;
-}
+const formSchema = z.object({
+  brand: z.string(),
+  city: z.string(),
+  location: z.string(),
+  start_date: z.date(),
+  end_date: z.date(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  contract_value: z.number().optional(),
+  activity_description: z.string().optional()
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 const BRAND_OPTIONS: BrandName[] = [
   "Flipkart",
@@ -41,17 +45,40 @@ const BRAND_OPTIONS: BrandName[] = [
 export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   const { toast } = useToast();
   const user = useUser();
-  const form = useForm<FormData>();
+  
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      brand: undefined,
+      city: undefined,
+      location: "",
+      start_date: undefined,
+      end_date: undefined,
+      latitude: undefined,
+      longitude: undefined,
+      contract_value: undefined,
+      activity_description: ""
+    }
+  });
 
   const onSubmit = async (data: FormData) => {
     try {
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to create an activity",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('activities')
         .insert([{
           ...data,
           start_date: data.start_date.toISOString(),
           end_date: data.end_date.toISOString(),
-          created_by: user?.id,
+          created_by: user.id,
         }]);
 
       if (error) throw error;
