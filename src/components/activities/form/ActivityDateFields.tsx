@@ -14,6 +14,25 @@ interface ActivityDateFieldsProps {
 }
 
 export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
+  const handleDateSelect = (date: Date | undefined, field: any) => {
+    if (date) {
+      const currentValue = field.value || new Date();
+      const newDate = new Date(date);
+      newDate.setHours(currentValue.getHours() || 0);
+      newDate.setMinutes(currentValue.getMinutes() || 0);
+      field.onChange(newDate);
+    }
+  };
+
+  const handleTimeChange = (timeStr: string, field: any) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = field.value || new Date();
+    const newDate = new Date(date);
+    newDate.setHours(hours || 0);
+    newDate.setMinutes(minutes || 0);
+    field.onChange(newDate);
+  };
+
   return (
     <div className="grid grid-cols-2 gap-4">
       <FormField
@@ -45,26 +64,16 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                 <Calendar
                   mode="single"
                   selected={field.value}
-                  onSelect={(date) => {
-                    if (date) {
-                      const currentValue = field.value || new Date();
-                      date.setHours(currentValue.getHours());
-                      date.setMinutes(currentValue.getMinutes());
-                      field.onChange(date);
-                    }
-                  }}
+                  onSelect={(date) => handleDateSelect(date, field)}
+                  disabled={false}
                   initialFocus
+                  fromDate={new Date(2000, 0)} // Allow dates from year 2000
+                  toDate={new Date(2100, 11, 31)} // Allow dates until year 2100
                 />
                 <div className="p-3 border-t">
                   <Input
                     type="time"
-                    onChange={(e) => {
-                      const [hours, minutes] = e.target.value.split(':').map(Number);
-                      const date = field.value || new Date();
-                      date.setHours(hours);
-                      date.setMinutes(minutes);
-                      field.onChange(new Date(date));
-                    }}
+                    onChange={(e) => handleTimeChange(e.target.value, field)}
                     value={field.value ? format(field.value, "HH:mm") : ""}
                     className="w-full"
                   />
@@ -104,26 +113,16 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                 <Calendar
                   mode="single"
                   selected={field.value}
-                  onSelect={(date) => {
-                    if (date) {
-                      const currentValue = field.value || new Date();
-                      date.setHours(currentValue.getHours());
-                      date.setMinutes(currentValue.getMinutes());
-                      field.onChange(date);
-                    }
-                  }}
+                  onSelect={(date) => handleDateSelect(date, field)}
+                  disabled={false}
                   initialFocus
+                  fromDate={new Date(2000, 0)} // Allow dates from year 2000
+                  toDate={new Date(2100, 11, 31)} // Allow dates until year 2100
                 />
                 <div className="p-3 border-t">
                   <Input
                     type="time"
-                    onChange={(e) => {
-                      const [hours, minutes] = e.target.value.split(':').map(Number);
-                      const date = field.value || new Date();
-                      date.setHours(hours);
-                      date.setMinutes(minutes);
-                      field.onChange(new Date(date));
-                    }}
+                    onChange={(e) => handleTimeChange(e.target.value, field)}
                     value={field.value ? format(field.value, "HH:mm") : ""}
                     className="w-full"
                   />
