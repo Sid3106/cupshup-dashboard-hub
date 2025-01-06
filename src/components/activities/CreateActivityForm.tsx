@@ -8,7 +8,7 @@ import { ActivityBasicFields } from "./form/ActivityBasicFields";
 import { ActivityDateFields } from "./form/ActivityDateFields";
 import { ActivityOptionalFields } from "./form/ActivityOptionalFields";
 import { ActivityFormData } from "./types";
-import { useSession } from "@supabase/auth-helpers-react";
+import { useAuth } from "@supabase/auth-helpers-react";
 
 interface CreateActivityFormProps {
   onSuccess: () => void;
@@ -17,7 +17,7 @@ interface CreateActivityFormProps {
 export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   const { toast } = useToast();
   const form = useForm<ActivityFormData>();
-  const session = useSession();
+  const auth = useAuth();
 
   // Fetch brands from clients table
   const { data: brands } = useQuery({
@@ -25,19 +25,21 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('brand_name');
+        .select('brand_name')
+        .then(result => {
+          if (result.error) throw result.error;
+          return result.data.map(d => d.brand_name)
+            .filter((value, index, self) => self.indexOf(value) === index);
+        });
       
       if (error) throw error;
-      
-      // Extract unique brand names from the response
-      const uniqueBrands = [...new Set(data.map(d => d.brand_name))];
-      return uniqueBrands;
+      return data;
     }
   });
 
   const onSubmit = async (data: ActivityFormData) => {
     try {
-      if (!session?.user?.id) {
+      if (!auth?.user?.id) {
         throw new Error('User not authenticated');
       }
 
@@ -47,7 +49,7 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
           ...data,
           start_date: data.start_date.toISOString(),
           end_date: data.end_date.toISOString(),
-          created_by: session.user.id
+          created_by: auth.user.id
         });
 
       if (error) throw error;
