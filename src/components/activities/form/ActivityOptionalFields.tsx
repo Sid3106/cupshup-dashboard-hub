@@ -19,7 +19,12 @@ export function ActivityOptionalFields({ form }: ActivityOptionalFieldsProps) {
             <FormItem>
               <FormLabel>Latitude</FormLabel>
               <FormControl>
-                <Input type="number" step="any" {...field} />
+                <Input 
+                  type="number" 
+                  step="any" 
+                  placeholder="Enter latitude coordinate"
+                  {...field} 
+                />
               </FormControl>
             </FormItem>
           )}
@@ -32,7 +37,12 @@ export function ActivityOptionalFields({ form }: ActivityOptionalFieldsProps) {
             <FormItem>
               <FormLabel>Longitude</FormLabel>
               <FormControl>
-                <Input type="number" step="any" {...field} />
+                <Input 
+                  type="number" 
+                  step="any" 
+                  placeholder="Enter longitude coordinate"
+                  {...field} 
+                />
               </FormControl>
             </FormItem>
           )}
@@ -44,9 +54,15 @@ export function ActivityOptionalFields({ form }: ActivityOptionalFieldsProps) {
         name="contract_value"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Contract Value</FormLabel>
+            <FormLabel>Contract Value (₹)</FormLabel>
             <FormControl>
-              <Input type="number" {...field} />
+              <Input 
+                type="number" 
+                step="any"
+                min="0"
+                placeholder="Enter contract value"
+                {...field} 
+              />
             </FormControl>
           </FormItem>
         )}
@@ -59,7 +75,10 @@ export function ActivityOptionalFields({ form }: ActivityOptionalFieldsProps) {
           <FormItem>
             <FormLabel>Activity Description</FormLabel>
             <FormControl>
-              <Textarea {...field} />
+              <Textarea 
+                placeholder="Enter activity description"
+                {...field} 
+              />
             </FormControl>
           </FormItem>
         )}
