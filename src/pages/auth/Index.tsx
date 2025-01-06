@@ -22,12 +22,13 @@ export default function AuthPage() {
         try {
           // If we have profile data from URL, create profile
           if (profileData) {
+            console.log("Creating profile with data:", profileData);
             const { error: profileError } = await supabase
               .from('profiles')
-              .insert({
+              .insert([{
                 user_id: session.user.id,
                 ...profileData
-              });
+              }]);
 
             if (profileError) {
               console.error('Profile creation error:', profileError);
@@ -38,6 +39,8 @@ export default function AuthPage() {
               });
               return;
             }
+
+            console.log("Profile created successfully");
           }
 
           // Redirect to dashboard after successful sign in
@@ -60,6 +63,7 @@ export default function AuthPage() {
       const encodedData = searchParams.get('profile');
       if (encodedData) {
         const decodedData = JSON.parse(atob(encodedData));
+        console.log("Decoded profile data:", decodedData);
         setProfileData(decodedData);
       }
     } catch (error) {
@@ -122,20 +126,6 @@ export default function AuthPage() {
               redirectTo={`${window.location.origin}/auth/callback`}
               onlyThirdPartyProviders={false}
               magicLink={false}
-              localization={{
-                variables: {
-                  sign_in: {
-                    email_label: "Email",
-                    password_label: "Password",
-                    email_input_placeholder: "Your email address",
-                    password_input_placeholder: "Your password",
-                    button_label: "Sign in",
-                    loading_button_label: "Signing in ...",
-                    social_provider_text: "Sign in with {{provider}}",
-                    link_text: "Don't have an account? Sign up"
-                  }
-                }
-              }}
             />
           </CardContent>
         </Card>
