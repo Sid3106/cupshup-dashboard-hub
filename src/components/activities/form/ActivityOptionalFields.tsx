@@ -2,10 +2,10 @@ import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/for
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
-import { FormData } from "../CreateActivityForm";
+import { FormValues } from "../CreateActivityForm";
 
 interface ActivityOptionalFieldsProps {
-  form: UseFormReturn<FormData>;
+  form: UseFormReturn<FormValues>;
 }
 
 export function ActivityOptionalFields({ form }: ActivityOptionalFieldsProps) {

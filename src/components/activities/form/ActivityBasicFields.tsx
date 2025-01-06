@@ -3,11 +3,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { CITIES } from "@/constants/formOptions";
 import { UseFormReturn } from "react-hook-form";
-import { FormData } from "../CreateActivityForm";
+import { FormValues } from "../CreateActivityForm";
 import { BrandName } from "@/integrations/supabase/types/enums";
 
 interface ActivityBasicFieldsProps {
-  form: UseFormReturn<FormData>;
+  form: UseFormReturn<FormValues>;
   brands: BrandName[];
 }
 

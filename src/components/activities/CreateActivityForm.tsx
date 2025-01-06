@@ -8,6 +8,7 @@ import { ActivityDateFields } from "./form/ActivityDateFields";
 import { ActivityOptionalFields } from "./form/ActivityOptionalFields";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { BrandName } from "@/integrations/supabase/types/enums";
 
 interface CreateActivityFormProps {
   onSuccess: () => void;
@@ -29,7 +30,7 @@ const formSchema = z.object({
   activity_description: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+export type FormValues = z.infer<typeof formSchema>;
 
 export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   const { toast } = useToast();
@@ -51,10 +52,14 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      const { error } = await supabase.from("activities").insert({
+      const formattedData = {
         ...data,
+        start_date: data.start_date.toISOString(),
+        end_date: data.end_date.toISOString(),
         created_by: user.id,
-      });
+      };
+
+      const { error } = await supabase.from("activities").insert(formattedData);
 
       if (error) throw error;
 
@@ -78,9 +83,9 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <ActivityBasicFields />
-        <ActivityDateFields />
-        <ActivityOptionalFields />
+        <ActivityBasicFields form={form} brands={Object.values(BrandName)} />
+        <ActivityDateFields form={form} />
+        <ActivityOptionalFields form={form} />
         <Button type="submit" className="w-full">Create Activity</Button>
       </form>
     </Form>

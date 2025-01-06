@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
-import { FormData } from "../CreateActivityForm";
+import { FormValues } from "../CreateActivityForm";
 import { useEffect } from "react";
 
 interface ActivityDateFieldsProps {
-  form: UseFormReturn<FormData>;
+  form: UseFormReturn<FormValues>;
 }
 
 export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
