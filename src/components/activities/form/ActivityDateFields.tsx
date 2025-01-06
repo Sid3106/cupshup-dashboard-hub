@@ -18,18 +18,21 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
     if (date) {
       const currentValue = field.value || new Date();
       const newDate = new Date(date);
-      newDate.setHours(currentValue.getHours() || 0);
-      newDate.setMinutes(currentValue.getMinutes() || 0);
+      // Preserve existing time or set to current time if no existing value
+      newDate.setHours(currentValue.getHours() || new Date().getHours());
+      newDate.setMinutes(currentValue.getMinutes() || new Date().getMinutes());
       field.onChange(newDate);
     }
   };
 
   const handleTimeChange = (timeStr: string, field: any) => {
+    if (!timeStr) return;
+    
     const [hours, minutes] = timeStr.split(':').map(Number);
     const date = field.value || new Date();
     const newDate = new Date(date);
-    newDate.setHours(hours || 0);
-    newDate.setMinutes(minutes || 0);
+    newDate.setHours(hours);
+    newDate.setMinutes(minutes);
     field.onChange(newDate);
   };
 
@@ -65,10 +68,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                   mode="single"
                   selected={field.value}
                   onSelect={(date) => handleDateSelect(date, field)}
-                  disabled={false}
                   initialFocus
-                  fromDate={new Date(2000, 0)} // Allow dates from year 2000
-                  toDate={new Date(2100, 11, 31)} // Allow dates until year 2100
                 />
                 <div className="p-3 border-t">
                   <Input
@@ -114,10 +114,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                   mode="single"
                   selected={field.value}
                   onSelect={(date) => handleDateSelect(date, field)}
-                  disabled={false}
                   initialFocus
-                  fromDate={new Date(2000, 0)} // Allow dates from year 2000
-                  toDate={new Date(2100, 11, 31)} // Allow dates until year 2100
                 />
                 <div className="p-3 border-t">
                   <Input
