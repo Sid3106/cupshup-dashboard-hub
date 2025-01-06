@@ -74,6 +74,8 @@ export default function AuthPage() {
         } finally {
           setIsLoading(false);
         }
+      } else if (event === "SIGNED_OUT") {
+        console.log("User signed out");
       }
     };
 
@@ -153,6 +155,18 @@ export default function AuthPage() {
               redirectTo={window.location.origin + '/auth/callback'}
               onlyThirdPartyProviders={false}
               magicLink={true}
+              localization={{
+                variables: {
+                  sign_in: {
+                    email_label: 'Email address',
+                    password_label: 'Password',
+                    button_label: 'Sign in',
+                    loading_button_label: 'Signing in...',
+                    social_provider_text: 'Sign in with {{provider}}',
+                    link_text: 'Already have an account? Sign in',
+                  },
+                },
+              }}
             />
           </CardContent>
         </Card>
