@@ -24,9 +24,9 @@ const formSchema = z.object({
   end_date: z.date({
     required_error: "End date is required",
   }),
-  latitude: z.string().transform(val => Number(val) || 0),
-  longitude: z.string().transform(val => Number(val) || 0),
-  contract_value: z.string().transform(val => Number(val) || 0),
+  latitude: z.string().transform(val => Number(val)),
+  longitude: z.string().transform(val => Number(val)),
+  contract_value: z.string().transform(val => Number(val)),
   activity_description: z.string().optional(),
 });
 
@@ -53,9 +53,15 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
       if (!user) throw new Error("No user found");
 
       const formattedData = {
-        ...data,
+        brand: data.brand,
+        city: data.city,
+        location: data.location,
         start_date: data.start_date.toISOString(),
         end_date: data.end_date.toISOString(),
+        latitude: data.latitude || null,
+        longitude: data.longitude || null,
+        contract_value: data.contract_value || null,
+        activity_description: data.activity_description,
         created_by: user.id,
       };
 

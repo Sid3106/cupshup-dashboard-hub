@@ -1,3 +1,18 @@
+export const BrandName = {
+  Flipkart: "Flipkart",
+  DCBBank: "DCB Bank",
+  VLCC: "VLCC",
+  Spencers: "Spencers",
+  UnityBank: "Unity Bank",
+  Tata1mg: "Tata 1mg",
+  Sleepwell: "Sleepwell",
+  HDFCLife: "HDFC Life",
+  Farmrise: "Farmrise",
+  NaturesBasket: "Natures Basket",
+} as const;
+
+export type BrandName = typeof BrandName[keyof typeof BrandName];
+
 export type IndianCity =
   | "Mumbai"
   | "Delhi"
@@ -8,18 +23,6 @@ export type IndianCity =
   | "Bengaluru"
   | "Jaipur"
   | "Ahmedabad"
-  | "Chennai"
+  | "Chennai";
 
-export type UserRole = "CupShup" | "Client" | "Vendor"
-
-export type BrandName =
-  | "Flipkart"
-  | "DCB Bank"
-  | "VLCC"
-  | "Spencers"
-  | "Unity Bank"
-  | "Tata 1mg"
-  | "Sleepwell"
-  | "HDFC Life"
-  | "Farmrise"
-  | "Natures Basket"
+export type UserRole = "CupShup" | "Client" | "Vendor";
