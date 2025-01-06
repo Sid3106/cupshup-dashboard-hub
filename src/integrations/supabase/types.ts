@@ -63,6 +63,7 @@ export type Database = {
       activity_mapped: {
         Row: {
           activity_id: string
+          activity_mapping_id: string | null
           assigned_by: string
           created_at: string
           id: string
@@ -75,6 +76,7 @@ export type Database = {
         }
         Insert: {
           activity_id: string
+          activity_mapping_id?: string | null
           assigned_by: string
           created_at?: string
           id?: string
@@ -87,6 +89,7 @@ export type Database = {
         }
         Update: {
           activity_id?: string
+          activity_mapping_id?: string | null
           assigned_by?: string
           created_at?: string
           id?: string

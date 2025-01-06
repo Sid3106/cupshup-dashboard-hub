@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sidebar, SidebarContent } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { Users, Store, Building2, CalendarDays } from "lucide-react";
+import { Users, Store, Building2, CalendarDays, LayoutDashboard, ListChecks } from "lucide-react";
 
 export function DashboardSidebar() {
   const { data: userProfile } = useQuery({
@@ -28,6 +28,18 @@ export function DashboardSidebar() {
   return (
     <Sidebar>
       <SidebarContent className="flex flex-col gap-4">
+        <NavLink
+          to="/dashboard"
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
+              isActive && "bg-accent"
+            )
+          }
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          <span>Dashboard</span>
+        </NavLink>
         <NavLink
           to="/dashboard/users"
           className={({ isActive }) =>
@@ -65,18 +77,32 @@ export function DashboardSidebar() {
           <span>Clients</span>
         </NavLink>
         {isCupShup && (
-          <NavLink
-            to="/dashboard/activities"
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
-                isActive && "bg-accent"
-              )
-            }
-          >
-            <CalendarDays className="h-4 w-4" />
-            <span>Activities</span>
-          </NavLink>
+          <>
+            <NavLink
+              to="/dashboard/activities"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
+                  isActive && "bg-accent"
+                )
+              }
+            >
+              <CalendarDays className="h-4 w-4" />
+              <span>Activities</span>
+            </NavLink>
+            <NavLink
+              to="/dashboard/mapped-activities"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
+                  isActive && "bg-accent"
+                )
+              }
+            >
+              <ListChecks className="h-4 w-4" />
+              <span>Mapped Activities</span>
+            </NavLink>
+          </>
         )}
       </SidebarContent>
     </Sidebar>
