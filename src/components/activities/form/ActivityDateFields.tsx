@@ -1,4 +1,4 @@
-import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
@@ -8,17 +8,29 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 import { FormData } from "../CreateActivityForm";
+import { useEffect } from "react";
 
 interface ActivityDateFieldsProps {
   form: UseFormReturn<FormData>;
 }
 
 export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
+  // Initialize default dates if not set
+  useEffect(() => {
+    if (!form.getValues("start_date")) {
+      form.setValue("start_date", new Date());
+    }
+    if (!form.getValues("end_date")) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      form.setValue("end_date", tomorrow);
+    }
+  }, [form]);
+
   const handleDateSelect = (date: Date | undefined, field: any) => {
     if (date) {
       const currentValue = field.value || new Date();
       const newDate = new Date(date);
-      // Preserve existing time or set to current time if no existing value
       newDate.setHours(currentValue.getHours() || new Date().getHours());
       newDate.setMinutes(currentValue.getMinutes() || new Date().getMinutes());
       field.onChange(newDate);
@@ -37,12 +49,13 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormField
         control={form.control}
         name="start_date"
+        rules={{ required: "Start date is required" }}
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="flex flex-col">
             <FormLabel>Start Date <span className="text-red-500">*</span></FormLabel>
             <Popover>
               <PopoverTrigger asChild>
@@ -55,9 +68,9 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                     )}
                   >
                     {field.value ? (
-                      format(field.value, "PPP HH:mm")
+                      format(field.value, "PPP")
                     ) : (
-                      <span>Pick a date and time</span>
+                      <span>Pick a date</span>
                     )}
                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
@@ -80,6 +93,10 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                 </div>
               </PopoverContent>
             </Popover>
+            <FormMessage />
+            <div className="text-sm text-muted-foreground mt-1">
+              {field.value && format(field.value, "h:mm a")}
+            </div>
           </FormItem>
         )}
       />
@@ -87,8 +104,9 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
       <FormField
         control={form.control}
         name="end_date"
+        rules={{ required: "End date is required" }}
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="flex flex-col">
             <FormLabel>End Date <span className="text-red-500">*</span></FormLabel>
             <Popover>
               <PopoverTrigger asChild>
@@ -101,9 +119,9 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                     )}
                   >
                     {field.value ? (
-                      format(field.value, "PPP HH:mm")
+                      format(field.value, "PPP")
                     ) : (
-                      <span>Pick a date and time</span>
+                      <span>Pick a date</span>
                     )}
                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
@@ -126,6 +144,10 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                 </div>
               </PopoverContent>
             </Popover>
+            <FormMessage />
+            <div className="text-sm text-muted-foreground mt-1">
+              {field.value && format(field.value, "h:mm a")}
+            </div>
           </FormItem>
         )}
       />
