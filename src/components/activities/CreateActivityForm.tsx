@@ -30,17 +30,20 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   const user = useUser();
   const form = useForm<FormData>();
 
-  // Fetch brands from clients table
+  // Fetch brands from clients table using a different query approach
   const { data: brands = [] } = useQuery({
     queryKey: ['brands'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
         .select('brand_name')
-        .distinct();
+        .order('brand_name');
       
       if (error) throw error;
-      return data.map(d => d.brand_name);
+      
+      // Remove duplicates using Set
+      const uniqueBrands = [...new Set(data.map(d => d.brand_name))];
+      return uniqueBrands;
     }
   });
 
