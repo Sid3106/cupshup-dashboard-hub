@@ -18,7 +18,7 @@ export function ActivityBasicFields({ form, brands }: ActivityBasicFieldsProps) 
         name="brand"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Brand *</FormLabel>
+            <FormLabel>Brand <span className="text-red-500">*</span></FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
               <FormControl>
                 <SelectTrigger>
@@ -42,7 +42,7 @@ export function ActivityBasicFields({ form, brands }: ActivityBasicFieldsProps) 
         name="city"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>City *</FormLabel>
+            <FormLabel>City <span className="text-red-500">*</span></FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
               <FormControl>
                 <SelectTrigger>
@@ -66,7 +66,7 @@ export function ActivityBasicFields({ form, brands }: ActivityBasicFieldsProps) 
         name="location"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Location *</FormLabel>
+            <FormLabel>Location <span className="text-red-500">*</span></FormLabel>
             <FormControl>
               <Input {...field} />
             </FormControl>

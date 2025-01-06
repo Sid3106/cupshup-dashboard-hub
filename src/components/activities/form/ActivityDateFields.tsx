@@ -21,7 +21,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
         name="start_date"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Start Date *</FormLabel>
+            <FormLabel>Start Date <span className="text-red-500">*</span></FormLabel>
             <Popover>
               <PopoverTrigger asChild>
                 <FormControl>
@@ -57,6 +57,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                       date.setHours(parseInt(hours), parseInt(minutes));
                       field.onChange(date);
                     }}
+                    value={field.value ? format(field.value, "HH:mm") : ""}
                   />
                 </div>
               </PopoverContent>
@@ -70,7 +71,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
         name="end_date"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>End Date *</FormLabel>
+            <FormLabel>End Date <span className="text-red-500">*</span></FormLabel>
             <Popover>
               <PopoverTrigger asChild>
                 <FormControl>
@@ -106,6 +107,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                       date.setHours(parseInt(hours), parseInt(minutes));
                       field.onChange(date);
                     }}
+                    value={field.value ? format(field.value, "HH:mm") : ""}
                   />
                 </div>
               </PopoverContent>
