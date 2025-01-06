@@ -44,6 +44,25 @@ export function AssignActivityDialog({ activity, open, onOpenChange }: AssignAct
     },
   });
 
+  const sendVendorEmail = async (vendorName: string, vendorEmail: string, message: string) => {
+    const { error } = await supabase.functions.invoke('send-vendor-email', {
+      body: {
+        vendor_name: vendorName,
+        vendor_email: vendorEmail,
+        brand: activity.brand,
+        location: activity.location,
+        start_date: activity.start_date,
+        end_date: activity.end_date,
+        message: message,
+      },
+    });
+
+    if (error) {
+      console.error('Error sending vendor email:', error);
+      throw error;
+    }
+  };
+
   const onSubmit = async (formData: FormData) => {
     try {
       setIsSubmitting(true);
@@ -75,9 +94,16 @@ export function AssignActivityDialog({ activity, open, onOpenChange }: AssignAct
 
       if (insertError) throw insertError;
 
+      // Send email to vendor
+      await sendVendorEmail(
+        selectedVendor.vendor_name,
+        selectedVendor.vendor_email,
+        formData.message
+      );
+
       toast({
         title: "Success",
-        description: "Activity assigned successfully",
+        description: "Activity assigned and notification sent to vendor",
       });
 
       onOpenChange(false);
