@@ -43,6 +43,25 @@ export default function AuthPage() {
             console.log("Profile created successfully");
           }
 
+          // Get the user's profile to check their role
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+            toast({
+              title: "Error",
+              description: "Failed to fetch user profile. Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          console.log("User profile:", profile);
+
           // Redirect to dashboard after successful sign in
           navigate('/dashboard');
         } catch (error: any) {
@@ -105,7 +124,7 @@ export default function AuthPage() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl">Sign in</CardTitle>
             <CardDescription>
-              Choose your preferred sign in method
+              Enter your email and password to sign in
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -123,9 +142,9 @@ export default function AuthPage() {
                 }
               }}
               providers={[]}
-              redirectTo={`${window.location.origin}/auth/callback`}
+              redirectTo={window.location.origin + '/auth/callback'}
               onlyThirdPartyProviders={false}
-              magicLink={false}
+              magicLink={true}
             />
           </CardContent>
         </Card>
