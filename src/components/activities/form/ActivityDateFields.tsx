@@ -35,7 +35,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                     {field.value ? (
                       format(field.value, "PPP HH:mm")
                     ) : (
-                      <span>Pick a date</span>
+                      <span>Pick a date and time</span>
                     )}
                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
@@ -45,19 +45,28 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                 <Calendar
                   mode="single"
                   selected={field.value}
-                  onSelect={field.onChange}
+                  onSelect={(date) => {
+                    if (date) {
+                      const currentValue = field.value || new Date();
+                      date.setHours(currentValue.getHours());
+                      date.setMinutes(currentValue.getMinutes());
+                      field.onChange(date);
+                    }
+                  }}
                   initialFocus
                 />
                 <div className="p-3 border-t">
                   <Input
                     type="time"
                     onChange={(e) => {
+                      const [hours, minutes] = e.target.value.split(':').map(Number);
                       const date = field.value || new Date();
-                      const [hours, minutes] = e.target.value.split(':');
-                      date.setHours(parseInt(hours), parseInt(minutes));
-                      field.onChange(date);
+                      date.setHours(hours);
+                      date.setMinutes(minutes);
+                      field.onChange(new Date(date));
                     }}
                     value={field.value ? format(field.value, "HH:mm") : ""}
+                    className="w-full"
                   />
                 </div>
               </PopoverContent>
@@ -85,7 +94,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                     {field.value ? (
                       format(field.value, "PPP HH:mm")
                     ) : (
-                      <span>Pick a date</span>
+                      <span>Pick a date and time</span>
                     )}
                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
@@ -95,19 +104,28 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                 <Calendar
                   mode="single"
                   selected={field.value}
-                  onSelect={field.onChange}
+                  onSelect={(date) => {
+                    if (date) {
+                      const currentValue = field.value || new Date();
+                      date.setHours(currentValue.getHours());
+                      date.setMinutes(currentValue.getMinutes());
+                      field.onChange(date);
+                    }
+                  }}
                   initialFocus
                 />
                 <div className="p-3 border-t">
                   <Input
                     type="time"
                     onChange={(e) => {
+                      const [hours, minutes] = e.target.value.split(':').map(Number);
                       const date = field.value || new Date();
-                      const [hours, minutes] = e.target.value.split(':');
-                      date.setHours(parseInt(hours), parseInt(minutes));
-                      field.onChange(date);
+                      date.setHours(hours);
+                      date.setMinutes(minutes);
+                      field.onChange(new Date(date));
                     }}
                     value={field.value ? format(field.value, "HH:mm") : ""}
+                    className="w-full"
                   />
                 </div>
               </PopoverContent>
