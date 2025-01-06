@@ -21,11 +21,16 @@ export const formSchema = z.object({
   location: z.string().min(1, "Location is required"),
   start_date: z.date(),
   end_date: z.date(),
-  latitude: z.string().optional().transform(val => val ? Number(val) : null),
-  longitude: z.string().optional().transform(val => val ? Number(val) : null),
-  contract_value: z.string().optional().transform(val => val ? Number(val) : null),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  contract_value: z.string().optional(),
   activity_description: z.string().optional()
-});
+}).transform(data => ({
+  ...data,
+  latitude: data.latitude ? Number(data.latitude) : null,
+  longitude: data.longitude ? Number(data.longitude) : null,
+  contract_value: data.contract_value ? Number(data.contract_value) : null,
+}));
 
 export type FormData = z.infer<typeof formSchema>;
 
