@@ -17,32 +17,9 @@ export default function AuthPage() {
     const handleAuthStateChange = async ({ event, session }: any) => {
       console.log("Auth state changed:", event, session);
       
-      if (event === "SIGNED_IN") {
+      if (event === "SIGNED_IN" && session) {
         setIsLoading(true);
         try {
-          // If we have profile data from URL, create profile
-          if (profileData) {
-            console.log("Creating profile with data:", profileData);
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert([{
-                user_id: session.user.id,
-                ...profileData
-              }]);
-
-            if (profileError) {
-              console.error('Profile creation error:', profileError);
-              toast({
-                title: "Error",
-                description: "Failed to create user profile. Please try again.",
-                variant: "destructive",
-              });
-              return;
-            }
-
-            console.log("Profile created successfully");
-          }
-
           // Get the user's profile to check their role
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -61,6 +38,29 @@ export default function AuthPage() {
           }
 
           console.log("User profile:", profile);
+
+          // If we have profile data from URL and no existing profile, create one
+          if (profileData && !profile) {
+            console.log("Creating profile with data:", profileData);
+            const { error: createProfileError } = await supabase
+              .from('profiles')
+              .insert([{
+                user_id: session.user.id,
+                ...profileData
+              }]);
+
+            if (createProfileError) {
+              console.error('Profile creation error:', createProfileError);
+              toast({
+                title: "Error",
+                description: "Failed to create user profile. Please try again.",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            console.log("Profile created successfully");
+          }
 
           // Redirect to dashboard after successful sign in
           navigate('/dashboard');
@@ -95,7 +95,7 @@ export default function AuthPage() {
     // Check if user is already signed in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate('/dashboard');
+        handleAuthStateChange({ event: "SIGNED_IN", session });
       }
     });
 
@@ -103,6 +103,14 @@ export default function AuthPage() {
       subscription.unsubscribe();
     };
   }, [navigate, profileData, searchParams, toast]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
