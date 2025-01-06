@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -45,7 +45,6 @@ export function DashboardHeader() {
 
   const handleLogout = async () => {
     try {
-      // Simply sign out and let Supabase handle session cleanup
       await supabase.auth.signOut();
       navigate("/auth");
       toast.success("Logged out successfully");
@@ -59,15 +58,16 @@ export function DashboardHeader() {
   return (
     <header className="border-b bg-white">
       <div className="flex h-16 items-center px-4 gap-4">
+        <h1 className="text-2xl font-roboto font-bold text-primary">Menu</h1>
         <div className="ml-auto flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="text-gray-600 hover:text-[#00A979] hover:bg-[#00A979]/5">
+          <Button variant="ghost" size="icon" className="text-gray-600 hover:text-primary hover:bg-primary/5">
             <Bell className="h-5 w-5" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar>
-                  <AvatarFallback className="bg-[#00A979] text-white">{userInitials}</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-white">{userInitials}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

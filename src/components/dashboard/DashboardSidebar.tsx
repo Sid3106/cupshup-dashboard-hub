@@ -27,13 +27,13 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar>
-      <SidebarContent className="flex flex-col gap-4">
+      <SidebarContent className="flex flex-col gap-4 bg-primary text-white p-4">
         <NavLink
           to="/dashboard"
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
-              isActive && "bg-accent"
+              "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 font-montserrat",
+              isActive && "bg-white/10"
             )
           }
         >
@@ -44,8 +44,8 @@ export function DashboardSidebar() {
           to="/dashboard/users"
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
-              isActive && "bg-accent"
+              "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 font-montserrat",
+              isActive && "bg-white/10"
             )
           }
         >
@@ -56,8 +56,8 @@ export function DashboardSidebar() {
           to="/dashboard/vendors"
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
-              isActive && "bg-accent"
+              "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 font-montserrat",
+              isActive && "bg-white/10"
             )
           }
         >
@@ -68,8 +68,8 @@ export function DashboardSidebar() {
           to="/dashboard/clients"
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
-              isActive && "bg-accent"
+              "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 font-montserrat",
+              isActive && "bg-white/10"
             )
           }
         >
@@ -82,8 +82,8 @@ export function DashboardSidebar() {
               to="/dashboard/activities"
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
-                  isActive && "bg-accent"
+                  "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 font-montserrat",
+                  isActive && "bg-white/10"
                 )
               }
             >
@@ -94,8 +94,8 @@ export function DashboardSidebar() {
               to="/dashboard/mapped-activities"
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent",
-                  isActive && "bg-accent"
+                  "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 font-montserrat",
+                  isActive && "bg-white/10"
                 )
               }
             >

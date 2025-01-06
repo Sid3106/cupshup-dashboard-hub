@@ -19,6 +19,8 @@ export default {
     },
     extend: {
       fontFamily: {
+        roboto: ['Roboto', 'sans-serif'],
+        montserrat: ['Montserrat', 'sans-serif'],
         inter: ["Inter", "sans-serif"],
       },
       colors: {
