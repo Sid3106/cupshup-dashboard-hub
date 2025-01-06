@@ -20,6 +20,7 @@ export default function AuthPage() {
       if (event === "SIGNED_IN") {
         setIsLoading(true);
         try {
+          // If we have profile data from URL, create profile
           if (profileData) {
             const { error: profileError } = await supabase
               .from('profiles')
@@ -30,23 +31,27 @@ export default function AuthPage() {
 
             if (profileError) {
               console.error('Profile creation error:', profileError);
-              throw profileError;
+              toast({
+                title: "Error",
+                description: "Failed to create user profile. Please try again.",
+                variant: "destructive",
+              });
+              return;
             }
           }
 
+          // Redirect to dashboard after successful sign in
           navigate('/dashboard');
         } catch (error: any) {
-          console.error('Error during profile creation:', error);
+          console.error('Error during sign in:', error);
           toast({
             title: "Error",
-            description: error.message || "Failed to create user profile. Please try again.",
+            description: error.message || "An error occurred during sign in. Please try again.",
             variant: "destructive",
           });
         } finally {
           setIsLoading(false);
         }
-      } else if (event === "SIGNED_OUT") {
-        navigate('/auth');
       }
     };
 
@@ -114,22 +119,11 @@ export default function AuthPage() {
                 }
               }}
               providers={[]}
-              redirectTo={window.location.origin + '/auth/callback'}
-              view="sign_in"
-              showLinks={true}
+              redirectTo={`${window.location.origin}/auth/callback`}
+              onlyThirdPartyProviders={false}
+              magicLink={false}
               localization={{
                 variables: {
-                  sign_up: {
-                    email_label: "Email",
-                    password_label: "Password",
-                    email_input_placeholder: "Your email address",
-                    password_input_placeholder: "Your password",
-                    button_label: "Sign up",
-                    loading_button_label: "Signing up ...",
-                    social_provider_text: "Sign in with {{provider}}",
-                    link_text: "Don't have an account? Sign up",
-                    confirmation_text: "Check your email for the confirmation link"
-                  },
                   sign_in: {
                     email_label: "Email",
                     password_label: "Password",
@@ -138,7 +132,7 @@ export default function AuthPage() {
                     button_label: "Sign in",
                     loading_button_label: "Signing in ...",
                     social_provider_text: "Sign in with {{provider}}",
-                    link_text: "Already have an account? Sign in"
+                    link_text: "Don't have an account? Sign up"
                   }
                 }
               }}
