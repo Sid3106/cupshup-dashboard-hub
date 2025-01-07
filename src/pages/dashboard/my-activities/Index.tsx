@@ -75,7 +75,7 @@ export default function MyActivitiesPage() {
         setTotalPages(Math.ceil(count / itemsPerPage));
       }
 
-      // Fetch paginated activities
+      // Fetch paginated activities with their details
       const { data: mappedActivities, error: mappedError } = await supabase
         .from('activity_mapped')
         .select(`
@@ -95,7 +95,10 @@ export default function MyActivitiesPage() {
         .order('created_at', { ascending: false })
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
-      if (mappedError) throw mappedError;
+      if (mappedError) {
+        console.error('Error fetching mapped activities:', mappedError);
+        throw mappedError;
+      }
 
       if (!mappedActivities) {
         setMyActivities([]);
@@ -103,9 +106,9 @@ export default function MyActivitiesPage() {
       }
 
       // Get unique creator IDs
-      const creatorIds = [...new Set(mappedActivities.map(activity => 
-        activity.activities?.created_by
-      ).filter(Boolean))];
+      const creatorIds = [...new Set(mappedActivities
+        .map(activity => activity.activities?.created_by)
+        .filter(Boolean))];
 
       // Fetch creator profiles
       const { data: profilesData, error: profilesError } = await supabase
@@ -113,7 +116,10 @@ export default function MyActivitiesPage() {
         .select('user_id, name')
         .in('user_id', creatorIds);
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
 
       // Create a map of user_id to profile name
       const profileMap = new Map(
@@ -121,13 +127,16 @@ export default function MyActivitiesPage() {
       );
 
       // Transform the data
-      const transformedActivities = mappedActivities.map(activity => ({
-        ...activity,
-        creator_name: activity.activities?.created_by 
-          ? profileMap.get(activity.activities.created_by) || 'Unknown'
-          : 'Unknown'
-      }));
+      const transformedActivities = mappedActivities
+        .filter(activity => activity.activities) // Filter out any null activities
+        .map(activity => ({
+          ...activity,
+          creator_name: activity.activities?.created_by 
+            ? profileMap.get(activity.activities.created_by) || 'Unknown'
+            : 'Unknown'
+        }));
 
+      console.log('Transformed activities:', transformedActivities);
       setMyActivities(transformedActivities);
     } catch (error) {
       console.error('Error fetching my activities:', error);
