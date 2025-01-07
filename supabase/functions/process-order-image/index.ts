@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { createVisionClient, detectText } from "./vision-client.ts";
 import { extractOrderId } from "./order-processor.ts";
 
@@ -40,12 +39,12 @@ serve(async (req) => {
     const imageBuffer = new Uint8Array(await imageResponse.arrayBuffer());
     console.log('Image fetched successfully, size:', imageBuffer.length);
 
-    // Initialize Vision client
-    const visionClient = await createVisionClient();
+    // Initialize Vision client with credentials
+    const credentials = await createVisionClient();
     console.log('Vision client initialized successfully');
 
-    // Detect text in image
-    const detectedText = await detectText(visionClient, imageBuffer);
+    // Detect text in image using REST API
+    const detectedText = await detectText(credentials, imageBuffer);
     console.log('Text detection completed:', detectedText);
     
     if (!detectedText) {
