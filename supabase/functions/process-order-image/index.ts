@@ -39,6 +39,12 @@ serve(async (req) => {
       await worker.loadLanguage('eng');
       await worker.initialize('eng');
       
+      // Set parameters for better text recognition
+      await worker.setParameters({
+        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-', // Limit to alphanumeric and hyphen
+        preserve_interword_spaces: '1',
+      });
+      
       console.log('Starting OCR processing...');
       
       // Perform OCR on the image
@@ -50,13 +56,13 @@ serve(async (req) => {
       await worker.terminate();
       
       // Extract order ID using regex pattern
-      // Assuming order ID is a combination of numbers and letters
-      const orderIdMatch = text.match(/[A-Z0-9]{6,}/i);
+      // Looking for alphanumeric strings (at least 4 characters)
+      const orderIdMatch = text.match(/[A-Z0-9]{4,}/i);
       
       if (!orderIdMatch) {
         console.log('No order ID found in text');
         return new Response(
-          JSON.stringify({ error: 'Failed to read the Order ID from the image' }),
+          JSON.stringify({ error: 'Could not detect an order ID in the image. Please ensure the image contains clear, readable text.' }),
           { 
             headers: { 
               ...corsHeaders, 
@@ -88,7 +94,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing order image:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to process the image. Please try again.' }),
+      JSON.stringify({ 
+        error: 'Failed to process the image. Please ensure the image is clear and contains readable text.',
+        details: error.message 
+      }),
       { 
         headers: { 
           ...corsHeaders, 
