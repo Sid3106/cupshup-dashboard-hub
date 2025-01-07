@@ -24,27 +24,21 @@ const formSchema = z.object({
   end_date: z.date({
     required_error: "End date is required",
   }),
-  latitude: z.string()
-    .transform((val) => {
-      if (!val) return null;
-      const num = Number(val);
-      return isNaN(num) ? null : num;
-    })
-    .nullable(),
-  longitude: z.string()
-    .transform((val) => {
-      if (!val) return null;
-      const num = Number(val);
-      return isNaN(num) ? null : num;
-    })
-    .nullable(),
-  contract_value: z.string()
-    .transform((val) => {
-      if (!val) return null;
-      const num = Number(val);
-      return isNaN(num) ? null : num;
-    })
-    .nullable(),
+  latitude: z.number().nullable().or(z.string().transform(val => {
+    if (!val) return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  })),
+  longitude: z.number().nullable().or(z.string().transform(val => {
+    if (!val) return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  })),
+  contract_value: z.number().nullable().or(z.string().transform(val => {
+    if (!val) return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  })),
   activity_description: z.string().optional(),
 });
 
