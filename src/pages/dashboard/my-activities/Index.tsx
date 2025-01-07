@@ -43,6 +43,8 @@ export default function MyActivitiesPage() {
         .eq('user_id', user.id)
         .maybeSingle();
 
+      console.log('Profile data:', profileData);
+
       if (profileError) {
         console.error('Error fetching profile:', profileError);
         throw profileError;
@@ -58,12 +60,14 @@ export default function MyActivitiesPage() {
         return;
       }
 
-      // Get the vendor ID using maybeSingle()
+      // Get the vendor ID
       const { data: vendorData, error: vendorError } = await supabase
         .from('vendors')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      console.log('Vendor data:', vendorData);
 
       if (vendorError) {
         console.error('Error fetching vendor:', vendorError);
@@ -75,11 +79,18 @@ export default function MyActivitiesPage() {
         return;
       }
 
-      // Get the total count
-      const { count } = await supabase
+      // Get the total count of mapped activities for this vendor
+      const { count, error: countError } = await supabase
         .from('activity_mapped')
         .select('*', { count: 'exact', head: true })
         .eq('vendor_id', vendorData.id);
+
+      console.log('Activity count:', count);
+
+      if (countError) {
+        console.error('Error getting count:', countError);
+        throw countError;
+      }
 
       if (count !== null) {
         setTotalPages(Math.ceil(count / itemsPerPage));
@@ -102,16 +113,18 @@ export default function MyActivitiesPage() {
           )
         `)
         .eq('vendor_id', vendorData.id)
-        .order('created_at', { ascending: false })
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
+
+      console.log('Mapped activities:', mappedActivities);
 
       if (mappedError) {
         console.error('Error fetching mapped activities:', mappedError);
         throw mappedError;
       }
 
-      if (!mappedActivities) {
+      if (!mappedActivities || mappedActivities.length === 0) {
         setMyActivities([]);
+        setError("No activities have been assigned to you yet.");
         return;
       }
 
@@ -120,11 +133,15 @@ export default function MyActivitiesPage() {
         .map(activity => activity.activities?.created_by)
         .filter(Boolean))];
 
+      console.log('Creator IDs:', creatorIds);
+
       // Fetch creator profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, name')
         .in('user_id', creatorIds);
+
+      console.log('Creator profiles:', profilesData);
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -147,8 +164,9 @@ export default function MyActivitiesPage() {
         }));
 
       setMyActivities(transformedActivities);
+      setError(null);
     } catch (error) {
-      console.error('Error fetching my activities:', error);
+      console.error('Error in fetchMyActivities:', error);
       setError("Failed to fetch your activities. Please try again later.");
       toast({
         title: "Error",
