@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@supabase/auth-helpers-react";
 
@@ -31,6 +32,7 @@ interface MyActivity {
 export default function MyActivitiesPage() {
   const [myActivities, setMyActivities] = useState<MyActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const user = useUser();
 
@@ -42,14 +44,18 @@ export default function MyActivitiesPage() {
 
   const fetchMyActivities = async () => {
     try {
-      const { data: vendorData } = await supabase
+      const { data: vendorData, error: vendorError } = await supabase
         .from('vendors')
         .select('id')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
+
+      if (vendorError) throw vendorError;
 
       if (!vendorData) {
-        throw new Error('Vendor profile not found');
+        setError("No vendor profile found. Please contact support if you think this is a mistake.");
+        setIsLoading(false);
+        return;
       }
 
       const { data, error } = await supabase
@@ -74,8 +80,10 @@ export default function MyActivitiesPage() {
       if (error) throw error;
 
       setMyActivities(data || []);
+      setError(null);
     } catch (error) {
       console.error('Error fetching my activities:', error);
+      setError("Failed to fetch your activities. Please try again later.");
       toast({
         title: "Error",
         description: "Failed to fetch your activities. Please try again later.",
@@ -98,6 +106,11 @@ export default function MyActivitiesPage() {
 
         {isLoading ? (
           <div className="text-center py-8">Loading activities...</div>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         ) : myActivities.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No activities have been assigned to you yet.
