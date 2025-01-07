@@ -6,6 +6,7 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AuthError, PostgrestError } from "@supabase/supabase-js";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -17,12 +18,30 @@ export default function AuthPage() {
 
   const handleError = (error: AuthError | PostgrestError) => {
     console.error('Error:', error);
-    const errorMessage = error.message === 'Invalid login credentials'
-      ? 'Invalid email or password. Please check your credentials and try again.'
-      : error.message;
+    let errorMessage = 'An error occurred during authentication.';
+    
+    if ('code' in error) {
+      switch (error.code) {
+        case 'invalid_credentials':
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+          break;
+        case 'invalid_grant':
+          errorMessage = 'Invalid login credentials. Please try again.';
+          break;
+        case 'user_not_found':
+          errorMessage = 'No account found with these credentials.';
+          break;
+        case 'email_not_confirmed':
+          errorMessage = 'Please verify your email address before signing in.';
+          break;
+        default:
+          errorMessage = error.message;
+      }
+    }
+    
     setAuthError(errorMessage);
     toast({
-      title: "Error",
+      title: "Authentication Error",
       description: errorMessage,
       variant: "destructive",
     });
@@ -141,9 +160,9 @@ export default function AuthPage() {
           </CardHeader>
           <CardContent>
             {authError && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                {authError}
-              </div>
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{authError}</AlertDescription>
+              </Alert>
             )}
             <Auth
               supabaseClient={supabase}
