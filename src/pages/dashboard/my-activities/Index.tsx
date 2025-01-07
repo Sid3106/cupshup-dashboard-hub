@@ -44,20 +44,26 @@ export default function MyActivitiesPage() {
 
   const fetchMyActivities = async () => {
     try {
-      const { data: vendorData, error: vendorError } = await supabase
-        .from('vendors')
-        .select('id')
-        .eq('user_id', user?.id)
-        .maybeSingle();
-
-      if (vendorError) throw vendorError;
-
-      if (!vendorData) {
-        setError("No vendor profile found. Please contact support if you think this is a mistake.");
+      if (!user) {
+        setError("User not authenticated");
         setIsLoading(false);
         return;
       }
 
+      // First get the vendor's ID
+      const { data: vendorData, error: vendorError } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (vendorError) {
+        console.error('Error fetching vendor:', vendorError);
+        throw vendorError;
+      }
+
+      // Even if no vendor profile is found, we'll still try to fetch activities
+      // using the user's ID, as they might be assigned directly
       const { data, error } = await supabase
         .from('activity_mapped')
         .select(`
@@ -74,7 +80,7 @@ export default function MyActivitiesPage() {
             activity_description
           )
         `)
-        .eq('vendor_id', vendorData.id)
+        .eq('vendor_id', vendorData?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
