@@ -4,14 +4,21 @@ const corsHeaders = {
 };
 
 function formatPrivateKey(key: string): string {
-  // Remove any existing header and footer
-  let formattedKey = key.replace(/-----BEGIN PRIVATE KEY-----/, '')
-    .replace(/-----END PRIVATE KEY-----/, '')
+  // Remove any existing header and footer and decode if base64 encoded
+  let formattedKey = key
+    .replace(/-----(BEGIN|END) PRIVATE KEY-----/g, '')
     .replace(/\s/g, '');
 
-  // Add header and footer back with proper formatting
-  formattedKey = `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
-  return formattedKey;
+  try {
+    // Try to decode if base64 encoded
+    atob(formattedKey);
+  } catch {
+    // If decoding fails, assume it's already decoded
+    formattedKey = btoa(formattedKey);
+  }
+
+  // Add PEM format
+  return `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
 }
 
 function base64UrlEncode(str: string): string {
@@ -37,6 +44,7 @@ export async function createVisionClient() {
 
     // Format the private key properly
     credentials.private_key = formatPrivateKey(credentials.private_key);
+    console.log('Private key formatted successfully');
     return credentials;
   } catch (error) {
     console.error('Error creating Vision client:', error);
@@ -65,8 +73,20 @@ export async function detectText(credentials: any, imageBuffer: Uint8Array) {
     const claimB64 = base64UrlEncode(JSON.stringify(jwtClaimSet));
     const signInput = `${headerB64}.${claimB64}`;
 
-    // Convert private key to proper format for crypto.subtle
-    const binaryKey = new TextEncoder().encode(credentials.private_key);
+    console.log('Preparing to sign JWT...');
+
+    // Convert PEM to binary for crypto.subtle
+    const pemHeader = '-----BEGIN PRIVATE KEY-----';
+    const pemFooter = '-----END PRIVATE KEY-----';
+    const pemContents = credentials.private_key
+      .replace(pemHeader, '')
+      .replace(pemFooter, '')
+      .replace(/\s/g, '');
+    
+    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+    console.log('Binary key prepared successfully');
+
+    // Import the key
     const importedKey = await crypto.subtle.importKey(
       'pkcs8',
       binaryKey,
@@ -77,6 +97,7 @@ export async function detectText(credentials: any, imageBuffer: Uint8Array) {
       false,
       ['sign']
     );
+    console.log('Key imported successfully');
 
     // Sign the JWT
     const signature = await crypto.subtle.sign(
@@ -84,6 +105,7 @@ export async function detectText(credentials: any, imageBuffer: Uint8Array) {
       importedKey,
       new TextEncoder().encode(signInput)
     );
+    console.log('JWT signed successfully');
 
     const signatureB64 = base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
     const jwt = `${signInput}.${signatureB64}`;
@@ -123,7 +145,7 @@ export async function detectText(credentials: any, imageBuffer: Uint8Array) {
     }
 
     const result = await response.json();
-    console.log('Vision API response received');
+    console.log('Vision API response received successfully');
 
     if (!result.responses?.[0]?.textAnnotations?.length) {
       console.log('No text detected in image');
