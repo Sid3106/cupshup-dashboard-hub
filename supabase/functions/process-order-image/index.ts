@@ -68,10 +68,51 @@ serve(async (req) => {
 
     // Initialize Vision API client
     console.log('Initializing Vision API client');
-    const credentials = JSON.parse(Deno.env.get('GOOGLE_CLOUD_CREDENTIALS') || '{}');
     
-    if (!credentials.project_id) {
-      throw new Error('Invalid Google Cloud credentials');
+    const credentialsStr = Deno.env.get('GOOGLE_CLOUD_CREDENTIALS');
+    if (!credentialsStr) {
+      console.error('Google Cloud credentials environment variable not found');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Google Cloud credentials not configured',
+          details: 'Missing GOOGLE_CLOUD_CREDENTIALS environment variable'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
+    }
+
+    let credentials;
+    try {
+      credentials = JSON.parse(credentialsStr);
+    } catch (error) {
+      console.error('Failed to parse Google Cloud credentials:', error);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid Google Cloud credentials',
+          details: 'Failed to parse credentials JSON'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
+    }
+
+    if (!credentials.project_id || !credentials.private_key || !credentials.client_email) {
+      console.error('Invalid Google Cloud credentials structure');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid Google Cloud credentials',
+          details: 'Credentials missing required fields'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      );
     }
 
     const client = new ImageAnnotatorClient({
