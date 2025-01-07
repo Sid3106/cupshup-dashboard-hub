@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Database } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   email?: string;
@@ -12,6 +14,7 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -40,6 +43,31 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, []);
+
+  const triggerVendorCreation = async () => {
+    try {
+      if (!profile) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Vendor profile creation triggered. Please refresh the page.",
+      });
+    } catch (error) {
+      console.error('Error triggering vendor creation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to trigger vendor creation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -103,6 +131,13 @@ export default function ProfilePage() {
               <label className="text-sm font-medium text-gray-500">Role</label>
               <p className="mt-1">{profile.role}</p>
             </div>
+            {profile.role === 'Vendor' && (
+              <div className="pt-4">
+                <Button onClick={triggerVendorCreation}>
+                  Trigger Vendor Creation
+                </Button>
+              </div>
+            )}
           </div>
         </Card>
       </div>
