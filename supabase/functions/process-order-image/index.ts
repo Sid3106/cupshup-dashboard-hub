@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,12 +13,7 @@ serve(async (req) => {
 
   try {
     const { imageUrl } = await req.json()
-
-    if (!imageUrl) {
-      throw new Error('No image URL provided')
-    }
-
-    // Call OpenAI Vision API to extract order ID
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -25,17 +21,21 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: 'gpt-4o',
         messages: [
           {
-            role: "user",
+            role: 'system',
+            content: 'You are an OCR assistant. Extract only the order ID from the image. Return only the order ID number, nothing else.',
+          },
+          {
+            role: 'user',
             content: [
               {
-                type: "text",
-                text: "Please extract the order ID from this image. Return ONLY the order ID number, nothing else.",
+                type: 'text',
+                text: 'Please extract the order ID from this image. Return only the order ID number.',
               },
               {
-                type: "image_url",
+                type: 'image_url',
                 image_url: imageUrl,
               },
             ],
@@ -44,25 +44,18 @@ serve(async (req) => {
       }),
     })
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${await response.text()}`)
-    }
-
-    const result = await response.json()
-    const orderId = result.choices[0].message.content.trim()
+    const data = await response.json()
+    const orderId = data.choices[0].message.content.trim()
 
     return new Response(
       JSON.stringify({ orderId }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error in process-order-image function:', error)
+    console.error('Error processing order image:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })
