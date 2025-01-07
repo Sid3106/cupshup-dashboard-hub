@@ -5,6 +5,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { AuthError } from "@supabase/supabase-js";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -14,6 +15,19 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  const handleError = (error: AuthError) => {
+    console.error('Authentication error:', error);
+    const errorMessage = error.message === 'Invalid login credentials'
+      ? 'Invalid email or password. Please check your credentials and try again.'
+      : error.message;
+    setAuthError(errorMessage);
+    toast({
+      title: "Error",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  };
+
   useEffect(() => {
     const handleAuthStateChange = async (event: string, session: any) => {
       console.log("Auth state changed - Event:", event);
@@ -22,7 +36,6 @@ export default function AuthPage() {
       if (event === "SIGNED_IN" && session) {
         setIsLoading(true);
         try {
-          // Get the user's profile to check their role
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -31,17 +44,12 @@ export default function AuthPage() {
 
           if (profileError) {
             console.error('Error fetching profile:', profileError);
-            toast({
-              title: "Error",
-              description: "Failed to fetch user profile. Please try again.",
-              variant: "destructive",
-            });
+            handleError(profileError);
             return;
           }
 
           console.log("User profile:", profile);
 
-          // If we have profile data from URL and no existing profile, create one
           if (profileData && !profile) {
             console.log("Creating profile with data:", profileData);
             const { error: createProfileError } = await supabase
@@ -53,27 +61,17 @@ export default function AuthPage() {
 
             if (createProfileError) {
               console.error('Profile creation error:', createProfileError);
-              toast({
-                title: "Error",
-                description: "Failed to create user profile. Please try again.",
-                variant: "destructive",
-              });
+              handleError(createProfileError);
               return;
             }
 
             console.log("Profile created successfully");
           }
 
-          // Redirect to dashboard after successful sign in
           navigate('/dashboard');
         } catch (error: any) {
           console.error('Error during sign in:', error);
-          setAuthError(error.message);
-          toast({
-            title: "Error",
-            description: error.message || "An error occurred during sign in. Please try again.",
-            variant: "destructive",
-          });
+          handleError(error);
         } finally {
           setIsLoading(false);
         }
@@ -83,7 +81,6 @@ export default function AuthPage() {
       }
     };
 
-    // Try to parse profile data from URL parameters
     try {
       const encodedData = searchParams.get('profile');
       if (encodedData) {
@@ -95,10 +92,8 @@ export default function AuthPage() {
       console.error('Error parsing profile data:', error);
     }
 
-    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
-    // Check if user is already signed in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         handleAuthStateChange("SIGNED_IN", session);
