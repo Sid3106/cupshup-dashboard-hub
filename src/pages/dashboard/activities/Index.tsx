@@ -43,35 +43,35 @@ export default function ActivitiesPage() {
 
   const fetchActivities = async () => {
     try {
+      setIsLoading(true);
+      
       // First, get the total count of activities
-      const { count, error: countError } = await supabase
+      const { count } = await supabase
         .from('activities')
         .select('*', { count: 'exact', head: true });
 
-      if (countError) throw countError;
-
-      if (count) {
+      if (count !== null) {
         setTotalPages(Math.ceil(count / itemsPerPage));
       }
 
-      // Then fetch the paginated activities
+      // Fetch activities with pagination
       const { data: activitiesData, error: activitiesError } = await supabase
         .from('activities')
-        .select(`
-          id,
-          brand,
-          city,
-          location,
-          start_date,
-          created_by
-        `)
+        .select('id, brand, city, location, start_date, created_by')
         .order('start_date', { ascending: false })
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
       if (activitiesError) throw activitiesError;
 
-      // Fetch profiles for the creators
-      const creatorIds = activitiesData?.map(activity => activity.created_by) || [];
+      if (!activitiesData) {
+        setActivities([]);
+        return;
+      }
+
+      // Get unique creator IDs
+      const creatorIds = [...new Set(activitiesData.map(activity => activity.created_by))];
+
+      // Fetch profiles for creators
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, name')
@@ -79,13 +79,13 @@ export default function ActivitiesPage() {
 
       if (profilesError) throw profilesError;
 
-      // Create a map of user_id to profile name for quick lookup
+      // Create a map of user_id to profile name
       const profileMap = new Map(
         profilesData?.map(profile => [profile.user_id, profile.name]) || []
       );
 
-      // Transform the data to match our interface
-      const transformedData: ActivityWithCreator[] = (activitiesData || []).map(activity => ({
+      // Transform the data
+      const transformedData: ActivityWithCreator[] = activitiesData.map(activity => ({
         id: activity.id,
         brand: activity.brand,
         city: activity.city,
