@@ -52,9 +52,9 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
       brand: "",
       city: "",
       location: "",
-      latitude: "",
-      longitude: "",
-      contract_value: "",
+      latitude: null,
+      longitude: null,
+      contract_value: null,
       activity_description: "",
     },
   });
