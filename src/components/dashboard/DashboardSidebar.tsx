@@ -19,6 +19,7 @@ export function DashboardSidebar() {
         .single();
 
       if (error) throw error;
+      console.log('User profile:', data); // Add logging to debug role
       return data;
     },
   });
