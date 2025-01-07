@@ -15,9 +15,12 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting order image processing');
+    
     // Validate request
     const { imageUrl } = await req.json();
     if (!imageUrl) {
+      console.error('No image URL provided');
       return new Response(
         JSON.stringify({ error: 'No image URL provided' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -29,7 +32,9 @@ serve(async (req) => {
     // Fetch image data
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+      const error = `Failed to fetch image: ${imageResponse.statusText}`;
+      console.error(error);
+      throw new Error(error);
     }
 
     const imageBuffer = new Uint8Array(await imageResponse.arrayBuffer());
@@ -41,9 +46,14 @@ serve(async (req) => {
 
     // Detect text in image
     const detectedText = await detectText(visionClient, imageBuffer);
+    console.log('Text detection completed:', detectedText);
+    
     if (!detectedText) {
       return new Response(
-        JSON.stringify({ error: 'No text detected in the image' }),
+        JSON.stringify({ 
+          error: 'No text detected in the image',
+          details: 'The OCR service could not find any text in the provided image'
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 422 }
       );
     }
@@ -54,34 +64,19 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'No order ID pattern found in the detected text',
-          detectedText: detectedText // Include detected text for debugging
+          detectedText: detectedText,
+          details: 'Could not find a pattern matching an order ID in the detected text'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 422 }
       );
     }
 
-    // Save to database
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const { error: dbError } = await supabase
-      .from('test')
-      .insert({
-        order_image: imageUrl,
-        order_id: orderId,
-      });
-
-    if (dbError) {
-      console.error('Database error:', dbError);
-      throw new Error('Failed to save to database');
-    }
-
+    // Return success response
     return new Response(
       JSON.stringify({ 
         orderId,
-        detectedText // Include full text for verification
+        detectedText,
+        success: true
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -91,7 +86,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Failed to process order image',
-        details: error.message
+        details: error.message,
+        stack: error.stack
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
