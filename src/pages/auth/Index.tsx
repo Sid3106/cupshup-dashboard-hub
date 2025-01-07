@@ -15,6 +15,7 @@ export default function AuthPage() {
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [view, setView] = useState<'sign_in' | 'update_password'>('sign_in');
 
   const handleError = (error: AuthError | PostgrestError) => {
     console.error('Error:', error);
@@ -48,6 +49,16 @@ export default function AuthPage() {
   };
 
   useEffect(() => {
+    // Check for password reset error in URL
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    
+    if (error === 'access_denied' && errorDescription) {
+      setAuthError(decodeURIComponent(errorDescription));
+      setView('update_password');
+      return;
+    }
+
     const handleAuthStateChange = async (event: string, session: any) => {
       console.log("Auth state changed - Event:", event);
       console.log("Auth state changed - Session:", session);
@@ -97,6 +108,8 @@ export default function AuthPage() {
       } else if (event === "SIGNED_OUT") {
         console.log("User signed out");
         setAuthError(null);
+      } else if (event === "PASSWORD_RECOVERY") {
+        setView('update_password');
       }
     };
 
@@ -145,7 +158,7 @@ export default function AuthPage() {
         <div className="relative z-20 mt-auto">
           <blockquote className="space-y-2">
             <p className="text-lg">
-              Welcome to our platform. Please sign in to continue.
+              {view === 'update_password' ? 'Reset your password to continue.' : 'Welcome to our platform. Please sign in to continue.'}
             </p>
           </blockquote>
         </div>
@@ -153,9 +166,13 @@ export default function AuthPage() {
       <div className="p-4 lg:p-8 h-full flex items-center">
         <Card className="mx-auto w-full max-w-md">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Sign in</CardTitle>
+            <CardTitle className="text-2xl">
+              {view === 'update_password' ? 'Reset Password' : 'Sign in'}
+            </CardTitle>
             <CardDescription>
-              Enter your email and password to sign in
+              {view === 'update_password' 
+                ? 'Enter your new password below'
+                : 'Enter your email and password to sign in'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -181,7 +198,7 @@ export default function AuthPage() {
               redirectTo={redirectURL}
               onlyThirdPartyProviders={false}
               magicLink={false}
-              view="sign_in"
+              view={view}
             />
           </CardContent>
         </Card>
