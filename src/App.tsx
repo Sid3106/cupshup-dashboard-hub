@@ -16,6 +16,7 @@ import ActivitiesPage from "./pages/dashboard/activities/Index";
 import MappedActivitiesPage from "./pages/dashboard/mapped-activities/Index";
 import ProfilePage from "./pages/dashboard/profile/Index";
 import AuthPage from "./pages/auth/Index";
+import TestPage from "./pages/dashboard/test/Index";
 
 const queryClient = new QueryClient();
 
@@ -130,6 +131,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <MappedActivitiesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/test"
+              element={
+                <ProtectedRoute>
+                  <TestPage />
                 </ProtectedRoute>
               }
             />

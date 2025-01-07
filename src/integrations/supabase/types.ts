@@ -189,6 +189,27 @@ export type Database = {
         }
         Relationships: []
       }
+      test: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string | null
+          order_image: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          order_image: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          order_image?: string
+        }
+        Relationships: []
+      }
       vendors: {
         Row: {
           city: string | null
