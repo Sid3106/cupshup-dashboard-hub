@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 export default function TestPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -98,7 +99,7 @@ export default function TestPage() {
         <div>
           <h2 className="text-2xl font-bold">Test Order Processing</h2>
           <p className="text-muted-foreground">
-            Upload an order image to extract the order ID
+            Upload an order image to extract the order ID using OCR
           </p>
         </div>
 
@@ -118,7 +119,14 @@ export default function TestPage() {
               disabled={!file || isLoading}
               className="w-full"
             >
-              {isLoading ? "Processing..." : "Submit"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Submit"
+              )}
             </Button>
             
             {error && (
