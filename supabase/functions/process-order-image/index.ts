@@ -20,6 +20,17 @@ serve(async (req) => {
 
     console.log('Processing image:', imageUrl)
 
+    // Fetch the image data
+    const imageResponse = await fetch(imageUrl)
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`)
+    }
+
+    // Convert the image to base64
+    const imageBuffer = await imageResponse.arrayBuffer()
+    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)))
+    const base64Url = `data:${imageResponse.headers.get('content-type') || 'image/jpeg'};base64,${base64Image}`
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -39,7 +50,7 @@ serve(async (req) => {
               {
                 type: 'image_url',
                 image_url: {
-                  url: imageUrl,
+                  url: base64Url,
                 },
               },
             ],
