@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useUser } from "@supabase/auth-helpers-react";
 import {
   Table,
   TableBody,
@@ -27,9 +26,7 @@ interface ActivityWithCreator {
   city: string;
   location: string;
   start_date: string;
-  profiles: {
-    name: string | null;
-  } | null;
+  creator_name: string | null;
 }
 
 export default function ActivitiesPage() {
@@ -38,7 +35,6 @@ export default function ActivitiesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
-  const user = useUser();
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -67,16 +63,25 @@ export default function ActivitiesPage() {
           city,
           location,
           start_date,
-          profiles!activities_created_by_fkey (
-            name
-          )
+          created_by,
+          creator:profiles!inner(name)
         `)
         .order('start_date', { ascending: false })
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
       if (error) throw error;
 
-      setActivities(data || []);
+      // Transform the data to match our interface
+      const transformedData: ActivityWithCreator[] = (data || []).map(activity => ({
+        id: activity.id,
+        brand: activity.brand,
+        city: activity.city,
+        location: activity.location,
+        start_date: activity.start_date,
+        creator_name: activity.creator?.name || 'Unknown'
+      }));
+
+      setActivities(transformedData);
     } catch (error) {
       console.error('Error fetching activities:', error);
       toast({
@@ -140,7 +145,7 @@ export default function ActivitiesPage() {
                     <TableCell>
                       {format(new Date(activity.start_date), 'PPP')}
                     </TableCell>
-                    <TableCell>{activity.profiles?.name || 'Unknown'}</TableCell>
+                    <TableCell>{activity.creator_name}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
