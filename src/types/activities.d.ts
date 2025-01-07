@@ -6,27 +6,22 @@ export interface Activity {
   location: string;
   start_date: string;
   end_date: string;
+  latitude?: number;
+  longitude?: number;
+  contract_value?: number;
+  activity_description?: string;
+  created_at: string;
+  updated_at: string;
   created_by: string;
 }
 
-export interface MyActivity {
-  id: string;
-  activity_mapping_id: string | null;
-  created_at: string;
-  activities: {
-    id: string;
-    brand: string;
-    city: string;
-    location: string;
-    start_date: string;
-    created_by: string;
-  };
+export interface MyActivity extends Activity {
   creator_name: string;
 }
 
 export interface ActivityTableProps {
   activities: MyActivity[];
-  onRowClick: (activityId: string) => void;
+  isLoading: boolean;
 }
 
 export interface PaginationProps {
