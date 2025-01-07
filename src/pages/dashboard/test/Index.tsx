@@ -41,9 +41,13 @@ export default function TestPage() {
       // Upload image to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
+
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('order_images')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
@@ -52,14 +56,13 @@ export default function TestPage() {
         .from('order_images')
         .getPublicUrl(fileName);
 
-      console.log('Calling Edge Function with image URL:', publicUrl);
+      console.log('Image uploaded successfully. Public URL:', publicUrl);
 
       // Process image with Google Cloud Vision API using Edge Function
       const { data, error: functionError } = await supabase.functions
         .invoke('process-order-image', {
-          body: { imageUrl: publicUrl },
-          headers: {
-            'Content-Type': 'application/json',
+          body: {
+            imageUrl: publicUrl
           }
         });
 
