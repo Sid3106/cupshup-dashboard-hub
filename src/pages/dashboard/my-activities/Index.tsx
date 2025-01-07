@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { MyActivitiesContent } from "@/components/activities/MyActivitiesContent";
+import { MyActivitiesTable } from "@/components/activities/MyActivitiesTable";
+import { ActivityPagination } from "@/components/activities/ActivityPagination";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@supabase/auth-helpers-react";
 import type { MyActivity } from "@/types/activities";
@@ -34,6 +36,7 @@ export default function MyActivitiesPage() {
         return;
       }
 
+      // First check if a vendor profile exists
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -57,6 +60,7 @@ export default function MyActivitiesPage() {
         return;
       }
 
+      // Get the vendor ID
       const { data: vendorData, error: vendorError } = await supabase
         .from('vendors')
         .select('id')
@@ -71,19 +75,17 @@ export default function MyActivitiesPage() {
       }
 
       if (!vendorData?.id) {
-        setError("Vendor profile not found. Please go to your profile page and click 'Trigger Vendor Creation'.");
-        toast({
-          title: "Action Required",
-          description: "Please visit your profile page and click 'Trigger Vendor Creation' to complete your vendor setup.",
-          variant: "destructive",
-        });
+        setError("Vendor profile not found. Please contact support.");
         return;
       }
 
+      // Get the total count of mapped activities for this vendor
       const { count, error: countError } = await supabase
         .from('activity_mapped')
         .select('*', { count: 'exact', head: true })
         .eq('vendor_id', vendorData.id);
+
+      console.log('Activity count:', count);
 
       if (countError) {
         console.error('Error getting count:', countError);
@@ -94,6 +96,7 @@ export default function MyActivitiesPage() {
         setTotalPages(Math.ceil(count / itemsPerPage));
       }
 
+      // Fetch activities with pagination
       const { data: mappedActivities, error: mappedError } = await supabase
         .from('activity_mapped')
         .select(`
@@ -112,6 +115,8 @@ export default function MyActivitiesPage() {
         .eq('vendor_id', vendorData.id)
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
+      console.log('Mapped activities:', mappedActivities);
+
       if (mappedError) {
         console.error('Error fetching mapped activities:', mappedError);
         throw mappedError;
@@ -123,24 +128,32 @@ export default function MyActivitiesPage() {
         return;
       }
 
+      // Get unique creator IDs
       const creatorIds = [...new Set(mappedActivities
         .map(activity => activity.activities?.created_by)
         .filter(Boolean))];
 
+      console.log('Creator IDs:', creatorIds);
+
+      // Fetch creator profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, name')
         .in('user_id', creatorIds);
+
+      console.log('Creator profiles:', profilesData);
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
         throw profilesError;
       }
 
+      // Create a map of user_id to profile name
       const profileMap = new Map(
         profilesData?.map(profile => [profile.user_id, profile.name]) || []
       );
 
+      // Transform the data
       const transformedActivities = mappedActivities
         .filter(activity => activity.activities)
         .map(activity => ({
@@ -179,15 +192,33 @@ export default function MyActivitiesPage() {
           </p>
         </div>
 
-        <MyActivitiesContent
-          isLoading={isLoading}
-          error={error}
-          myActivities={myActivities}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          onRowClick={handleRowClick}
-        />
+        {isLoading ? (
+          <div className="text-center py-8">Loading activities...</div>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : myActivities.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No activities have been assigned to you yet.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="border rounded-lg">
+              <MyActivitiesTable 
+                activities={myActivities} 
+                onRowClick={handleRowClick}
+              />
+            </div>
+
+            <ActivityPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
