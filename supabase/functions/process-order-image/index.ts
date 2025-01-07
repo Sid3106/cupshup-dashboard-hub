@@ -1,37 +1,39 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageUrl } = await req.json()
+    const { imageUrl } = await req.json();
     
     if (!imageUrl) {
-      throw new Error('No image URL provided')
+      throw new Error('No image URL provided');
     }
 
-    console.log('Processing image:', imageUrl)
+    console.log('Processing image:', imageUrl);
 
     // Fetch the image data
-    const imageResponse = await fetch(imageUrl)
+    const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`)
+      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
     }
 
     // Convert the image to base64
-    const imageBuffer = await imageResponse.arrayBuffer()
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)))
-    const base64Url = `data:${imageResponse.headers.get('content-type') || 'image/jpeg'};base64,${base64Image}`
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+    const base64Url = `data:${imageResponse.headers.get('content-type') || 'image/jpeg'};base64,${base64Image}`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call OpenAI API
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
@@ -57,23 +59,23 @@ serve(async (req) => {
           },
         ],
       }),
-    })
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('OpenAI API error response:', errorText)
-      throw new Error(`OpenAI API error: ${response.status} ${errorText}`)
+    if (!openAIResponse.ok) {
+      const errorText = await openAIResponse.text();
+      console.error('OpenAI API error response:', errorText);
+      throw new Error(`OpenAI API error: ${openAIResponse.status} ${errorText}`);
     }
 
-    const data = await response.json()
-    console.log('OpenAI API response:', data)
+    const data = await openAIResponse.json();
+    console.log('OpenAI API response:', data);
     
     if (!data.choices?.[0]?.message?.content) {
-      console.error('Unexpected API response structure:', data)
-      throw new Error('Invalid response from OpenAI API')
+      console.error('Unexpected API response structure:', data);
+      throw new Error('Invalid response from OpenAI API');
     }
 
-    const orderId = data.choices[0].message.content.trim()
+    const orderId = data.choices[0].message.content.trim();
 
     return new Response(
       JSON.stringify({ orderId }),
@@ -83,9 +85,9 @@ serve(async (req) => {
           'Content-Type': 'application/json' 
         } 
       }
-    )
+    );
   } catch (error) {
-    console.error('Error processing order image:', error)
+    console.error('Error processing order image:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
@@ -95,6 +97,6 @@ serve(async (req) => {
         }, 
         status: 500 
       }
-    )
+    );
   }
-})
+});
