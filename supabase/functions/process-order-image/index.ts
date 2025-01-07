@@ -15,15 +15,29 @@ serve(async (req) => {
   try {
     console.log('Starting image processing request');
     
+    // Parse request body with error handling
     let requestBody;
     try {
-      requestBody = await req.json();
-      console.log('Request body:', requestBody);
+      const bodyText = await req.text();
+      console.log('Raw request body:', bodyText);
+      
+      if (!bodyText) {
+        throw new Error('Request body is empty');
+      }
+      
+      requestBody = JSON.parse(bodyText);
+      console.log('Parsed request body:', requestBody);
     } catch (error) {
       console.error('Error parsing request JSON:', error);
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          details: error.message 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
       );
     }
 

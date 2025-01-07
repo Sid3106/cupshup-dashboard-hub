@@ -57,7 +57,7 @@ export default function TestPage() {
       // Process image with Google Cloud Vision API using Edge Function
       const { data, error: functionError } = await supabase.functions
         .invoke('process-order-image', {
-          body: { imageUrl: publicUrl },
+          body: JSON.stringify({ imageUrl: publicUrl }), // Explicitly stringify the body
           headers: {
             'Content-Type': 'application/json',
           }
