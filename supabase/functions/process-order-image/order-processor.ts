@@ -6,20 +6,26 @@ export function extractOrderId(text: string | null): string | null {
   
   console.log('Attempting to extract order ID from text:', text);
   
-  // Look for patterns that could be order IDs
-  const patterns = [
-    /[A-Z0-9]{6,}/i,  // At least 6 alphanumeric characters
-    /ORDER[:\s-]*([A-Z0-9]+)/i,  // "ORDER" followed by alphanumeric
-    /ID[:\s-]*([A-Z0-9]+)/i,  // "ID" followed by alphanumeric
-    /\b[A-Z0-9]{2,}-[A-Z0-9]{2,}\b/i, // Pattern like "XX-XX"
-    /\b[A-Z0-9]{4,}\b/i, // Any 4+ character alphanumeric sequence
+  // Look specifically for "Order ID" pattern first
+  const orderIdPattern = /Order\s*ID\s*[:\s-]*([A-Z0-9-]+)/i;
+  const match = text.match(orderIdPattern);
+  
+  if (match && match[1]) {
+    console.log('Found order ID:', match[1]);
+    return match[1].trim();
+  }
+  
+  // Fallback patterns if the specific "Order ID" pattern isn't found
+  const fallbackPatterns = [
+    /\b[A-Z0-9]{2,}-[A-Z0-9]{2,}\b/i,  // Pattern like "XX-XX"
+    /\b[A-Z0-9]{6,}\b/i,  // Any 6+ character alphanumeric sequence
   ];
 
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const orderId = match[1] || match[0];
-      console.log('Found order ID using pattern:', pattern, 'Order ID:', orderId);
+  for (const pattern of fallbackPatterns) {
+    const fallbackMatch = text.match(pattern);
+    if (fallbackMatch) {
+      const orderId = fallbackMatch[0];
+      console.log('Found order ID using fallback pattern:', pattern, 'Order ID:', orderId);
       return orderId;
     }
   }
