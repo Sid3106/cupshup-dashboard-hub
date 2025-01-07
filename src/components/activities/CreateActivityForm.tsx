@@ -24,9 +24,9 @@ const formSchema = z.object({
   end_date: z.date({
     required_error: "End date is required",
   }),
-  latitude: z.string().transform(val => val ? Number(val) : null),
-  longitude: z.string().transform(val => val ? Number(val) : null),
-  contract_value: z.string().transform(val => val ? Number(val) : null),
+  latitude: z.string().transform(val => val ? parseFloat(val) : null),
+  longitude: z.string().transform(val => val ? parseFloat(val) : null),
+  contract_value: z.string().transform(val => val ? parseFloat(val) : null),
   activity_description: z.string().optional(),
 });
 

@@ -5,7 +5,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { AuthError } from "@supabase/supabase-js";
+import { AuthError, PostgrestError } from "@supabase/supabase-js";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -15,8 +15,8 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const handleError = (error: AuthError) => {
-    console.error('Authentication error:', error);
+  const handleError = (error: AuthError | PostgrestError) => {
+    console.error('Error:', error);
     const errorMessage = error.message === 'Invalid login credentials'
       ? 'Invalid email or password. Please check your credentials and try again.'
       : error.message;
