@@ -13,22 +13,24 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting image processing request');
+    // Log the raw request for debugging
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
-    // Parse request body with error handling
+    // Get the request body
+    const bodyText = await req.text();
+    console.log('Raw request body:', bodyText);
+
+    if (!bodyText) {
+      throw new Error('Request body is empty');
+    }
+
     let requestBody;
     try {
-      const bodyText = await req.text();
-      console.log('Raw request body:', bodyText);
-      
-      if (!bodyText) {
-        throw new Error('Request body is empty');
-      }
-      
       requestBody = JSON.parse(bodyText);
       console.log('Parsed request body:', requestBody);
     } catch (error) {
-      console.error('Error parsing request JSON:', error);
+      console.error('Error parsing JSON:', error);
       return new Response(
         JSON.stringify({ 
           error: 'Invalid JSON in request body',
@@ -152,10 +154,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error processing order image:', error);
+    console.error('Error processing request:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to process the image. Please try again.',
+        error: 'Failed to process the request',
         details: error.message 
       }),
       { 
