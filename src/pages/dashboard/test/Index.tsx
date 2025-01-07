@@ -52,13 +52,21 @@ export default function TestPage() {
         .from('order_images')
         .getPublicUrl(fileName);
 
+      console.log('Calling Edge Function with image URL:', publicUrl);
+
       // Process image with Google Cloud Vision API using Edge Function
-      const { data, error: ocrError } = await supabase.functions
+      const { data, error: functionError } = await supabase.functions
         .invoke('process-order-image', {
           body: { imageUrl: publicUrl },
+          headers: {
+            'Content-Type': 'application/json',
+          }
         });
 
-      if (ocrError) throw ocrError;
+      if (functionError) {
+        console.error('Edge Function error:', functionError);
+        throw functionError;
+      }
 
       if (data.error) {
         setError(data.error);
@@ -80,9 +88,9 @@ export default function TestPage() {
         title: "Success",
         description: "Order image processed successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing order:', error);
-      setError('Failed to process the image. Please try again.');
+      setError(error.message || 'Failed to process the image. Please try again.');
       toast({
         title: "Error",
         description: "Failed to process order image",
