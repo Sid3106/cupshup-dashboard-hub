@@ -1,4 +1,4 @@
-import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
@@ -26,6 +26,7 @@ export function ActivityOptionalFields({ form }: ActivityOptionalFieldsProps) {
                   {...field} 
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -44,6 +45,7 @@ export function ActivityOptionalFields({ form }: ActivityOptionalFieldsProps) {
                   {...field} 
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -64,6 +66,7 @@ export function ActivityOptionalFields({ form }: ActivityOptionalFieldsProps) {
                 {...field} 
               />
             </FormControl>
+            <FormMessage />
           </FormItem>
         )}
       />
@@ -80,6 +83,7 @@ export function ActivityOptionalFields({ form }: ActivityOptionalFieldsProps) {
                 {...field} 
               />
             </FormControl>
+            <FormMessage />
           </FormItem>
         )}
       />
