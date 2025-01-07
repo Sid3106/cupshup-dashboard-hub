@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AuthError, PostgrestError } from "@supabase/supabase-js";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthHeader } from "@/components/auth/AuthHeader";
+import { AuthSidebar } from "@/components/auth/AuthSidebar";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -49,9 +51,10 @@ export default function AuthPage() {
   };
 
   useEffect(() => {
-    // Check for password reset error in URL
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
+    // Parse the hash fragment for password reset
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const error = hashParams.get('error') || searchParams.get('error');
+    const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
     
     if (error === 'access_denied' && errorDescription) {
       setAuthError(decodeURIComponent(errorDescription));
@@ -146,35 +149,13 @@ export default function AuthPage() {
   }
 
   const redirectURL = `${window.location.origin}/auth/callback`;
-  console.log("Redirect URL:", redirectURL);
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
-      <div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
-        <div className="absolute inset-0 bg-zinc-900" />
-        <div className="relative z-20 flex items-center text-lg font-medium">
-          <img src="/logo.png" alt="Logo" className="h-8 w-auto" />
-        </div>
-        <div className="relative z-20 mt-auto">
-          <blockquote className="space-y-2">
-            <p className="text-lg">
-              {view === 'update_password' ? 'Reset your password to continue.' : 'Welcome to our platform. Please sign in to continue.'}
-            </p>
-          </blockquote>
-        </div>
-      </div>
+      <AuthSidebar view={view} />
       <div className="p-4 lg:p-8 h-full flex items-center">
         <Card className="mx-auto w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">
-              {view === 'update_password' ? 'Reset Password' : 'Sign in'}
-            </CardTitle>
-            <CardDescription>
-              {view === 'update_password' 
-                ? 'Enter your new password below'
-                : 'Enter your email and password to sign in'}
-            </CardDescription>
-          </CardHeader>
+          <AuthHeader view={view} />
           <CardContent>
             {authError && (
               <Alert variant="destructive" className="mb-4">
