@@ -3,24 +3,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function formatPrivateKey(key: string): string {
-  // Remove any existing header and footer and decode if base64 encoded
-  let formattedKey = key
-    .replace(/-----(BEGIN|END) PRIVATE KEY-----/g, '')
-    .replace(/\s/g, '');
-
-  try {
-    // Try to decode if base64 encoded
-    atob(formattedKey);
-  } catch {
-    // If decoding fails, assume it's already decoded
-    formattedKey = btoa(formattedKey);
-  }
-
-  // Add PEM format
-  return `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
-}
-
 function base64UrlEncode(str: string): string {
   return btoa(str)
     .replace(/\+/g, '-')
@@ -42,9 +24,8 @@ export async function createVisionClient() {
       throw new Error('Invalid Google Cloud credentials format');
     }
 
-    // Format the private key properly
-    credentials.private_key = formatPrivateKey(credentials.private_key);
-    console.log('Private key formatted successfully');
+    // No need to format private key as it should be properly formatted in the environment
+    console.log('Credentials validated successfully');
     return credentials;
   } catch (error) {
     console.error('Error creating Vision client:', error);
@@ -75,21 +56,13 @@ export async function detectText(credentials: any, imageBuffer: Uint8Array) {
 
     console.log('Preparing to sign JWT...');
 
-    // Convert PEM to binary for crypto.subtle
-    const pemHeader = '-----BEGIN PRIVATE KEY-----';
-    const pemFooter = '-----END PRIVATE KEY-----';
-    const pemContents = credentials.private_key
-      .replace(pemHeader, '')
-      .replace(pemFooter, '')
-      .replace(/\s/g, '');
+    // Use private key directly from credentials
+    const privateKey = credentials.private_key;
     
-    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-    console.log('Binary key prepared successfully');
-
-    // Import the key
+    // Import the key using the raw private key string
     const importedKey = await crypto.subtle.importKey(
       'pkcs8',
-      binaryKey,
+      new TextEncoder().encode(privateKey),
       {
         name: 'RSASSA-PKCS1-v1_5',
         hash: { name: 'SHA-256' }
