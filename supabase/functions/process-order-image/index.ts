@@ -15,7 +15,19 @@ serve(async (req) => {
   try {
     console.log('Starting image processing request');
     
-    const { imageUrl } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body:', requestBody);
+    } catch (error) {
+      console.error('Error parsing request JSON:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const { imageUrl } = requestBody;
     
     if (!imageUrl) {
       console.error('No image URL provided');
@@ -28,10 +40,18 @@ serve(async (req) => {
     console.log('Processing image:', imageUrl);
 
     // Fetch the image data
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      console.error('Failed to fetch image:', imageResponse.statusText);
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+    let imageResponse;
+    try {
+      imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error fetching image:', error);
+      return new Response(
+        JSON.stringify({ error: `Failed to fetch image: ${error.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     // Get image buffer
@@ -39,18 +59,41 @@ serve(async (req) => {
 
     // Initialize Vision API client
     console.log('Initializing Vision API client');
-    const credentials = JSON.parse(Deno.env.get('GOOGLE_CLOUD_CREDENTIALS') || '{}');
+    let credentials;
+    try {
+      const credentialsStr = Deno.env.get('GOOGLE_CLOUD_CREDENTIALS');
+      if (!credentialsStr) {
+        throw new Error('Google Cloud credentials not found');
+      }
+      credentials = JSON.parse(credentialsStr);
+    } catch (error) {
+      console.error('Error parsing Google Cloud credentials:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to initialize Google Cloud Vision API' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
     const client = new ImageAnnotatorClient({
       credentials: credentials,
     });
 
     console.log('Performing OCR on image');
     // Perform OCR on the image
-    const [result] = await client.textDetection({
-      image: {
-        content: new Uint8Array(imageBuffer)
-      }
-    });
+    let result;
+    try {
+      [result] = await client.textDetection({
+        image: {
+          content: new Uint8Array(imageBuffer)
+        }
+      });
+    } catch (error) {
+      console.error('Error performing OCR:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to perform OCR on image', details: error.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
 
     const detections = result.textAnnotations;
     console.log('Raw OCR result:', detections?.[0]?.description);
