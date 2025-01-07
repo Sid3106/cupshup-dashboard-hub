@@ -15,6 +15,7 @@ import ClientsPage from "./pages/dashboard/clients/Index";
 import ActivitiesPage from "./pages/dashboard/activities/Index";
 import MappedActivitiesPage from "./pages/dashboard/mapped-activities/Index";
 import ProfilePage from "./pages/dashboard/profile/Index";
+import SettingsPage from "./pages/dashboard/settings/Index";
 import AuthPage from "./pages/auth/Index";
 import TestPage from "./pages/dashboard/test/Index";
 
@@ -75,6 +76,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
                 </ProtectedRoute>
               }
             />
