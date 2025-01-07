@@ -36,7 +36,29 @@ export default function MyActivitiesPage() {
         return;
       }
 
-      // Get the vendor ID using maybeSingle() instead of single()
+      // First check if a vendor profile exists
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
+
+      if (!profileData) {
+        setError("User profile not found. Please complete your profile setup.");
+        return;
+      }
+
+      if (profileData.role !== 'Vendor') {
+        setError("This page is only accessible to vendors.");
+        return;
+      }
+
+      // Get the vendor ID using maybeSingle()
       const { data: vendorData, error: vendorError } = await supabase
         .from('vendors')
         .select('id')
@@ -49,7 +71,7 @@ export default function MyActivitiesPage() {
       }
 
       if (!vendorData?.id) {
-        setError("Vendor profile not found");
+        setError("Vendor profile not found. Please contact support.");
         return;
       }
 
