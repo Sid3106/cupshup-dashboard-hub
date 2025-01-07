@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +13,10 @@ serve(async (req) => {
   try {
     const { imageUrl } = await req.json()
     
+    if (!imageUrl) {
+      throw new Error('No image URL provided')
+    }
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -44,7 +47,19 @@ serve(async (req) => {
       }),
     })
 
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('OpenAI API error response:', errorText)
+      throw new Error(`OpenAI API error: ${errorText}`)
+    }
+
     const data = await response.json()
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Unexpected API response structure:', data)
+      throw new Error('Invalid response from OpenAI API')
+    }
+
     const orderId = data.choices[0].message.content.trim()
 
     return new Response(
