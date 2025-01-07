@@ -1,42 +1,13 @@
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { MyActivitiesTable } from "@/components/activities/MyActivitiesTable";
+import { ActivityPagination } from "@/components/activities/ActivityPagination";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@supabase/auth-helpers-react";
-
-interface MyActivity {
-  id: string;
-  activity_mapping_id: string;
-  created_at: string;
-  activities: {
-    id: string;
-    brand: string;
-    city: string;
-    location: string;
-    start_date: string;
-    created_by: string;
-  };
-  creator_name?: string;
-}
+import type { MyActivity } from "@/types/activities";
 
 export default function MyActivitiesPage() {
   const [myActivities, setMyActivities] = useState<MyActivity[]>([]);
@@ -60,22 +31,39 @@ export default function MyActivitiesPage() {
       setIsLoading(true);
       setError(null);
 
-      if (!user?.email) {
-        setError("User email not found");
+      if (!user?.id) {
+        setError("User not found");
         return;
       }
 
-      // First get the total count
+      // First get the vendor ID for the current user
+      const { data: vendorData, error: vendorError } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (vendorError) {
+        console.error('Error fetching vendor:', vendorError);
+        throw vendorError;
+      }
+
+      if (!vendorData?.id) {
+        setError("Vendor profile not found");
+        return;
+      }
+
+      // Get the total count
       const { count } = await supabase
         .from('activity_mapped')
         .select('*', { count: 'exact', head: true })
-        .eq('vendor_email', user.email);
+        .eq('vendor_id', vendorData.id);
 
       if (count !== null) {
         setTotalPages(Math.ceil(count / itemsPerPage));
       }
 
-      // Fetch paginated activities with their details
+      // Fetch activities with pagination
       const { data: mappedActivities, error: mappedError } = await supabase
         .from('activity_mapped')
         .select(`
@@ -91,7 +79,7 @@ export default function MyActivitiesPage() {
             created_by
           )
         `)
-        .eq('vendor_email', user.email)
+        .eq('vendor_id', vendorData.id)
         .order('created_at', { ascending: false })
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
@@ -128,7 +116,7 @@ export default function MyActivitiesPage() {
 
       // Transform the data
       const transformedActivities = mappedActivities
-        .filter(activity => activity.activities) // Filter out any null activities
+        .filter(activity => activity.activities)
         .map(activity => ({
           ...activity,
           creator_name: activity.activities?.created_by 
@@ -155,23 +143,6 @@ export default function MyActivitiesPage() {
     navigate(`/dashboard/my-activities/${activityId}`);
   };
 
-  const renderPagination = () => {
-    const pages = [];
-    for (let i = 1; i <= totalPages; i++) {
-      pages.push(
-        <PaginationItem key={i}>
-          <PaginationLink
-            onClick={() => setCurrentPage(i)}
-            isActive={currentPage === i}
-          >
-            {i}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-    return pages;
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -196,57 +167,17 @@ export default function MyActivitiesPage() {
         ) : (
           <div className="space-y-4">
             <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Brand</TableHead>
-                    <TableHead>City</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>Created By</TableHead>
-                    <TableHead>Assigned On</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {myActivities.map((activity) => (
-                    <TableRow 
-                      key={activity.id}
-                      className="cursor-pointer hover:bg-muted"
-                      onClick={() => handleRowClick(activity.activities.id)}
-                    >
-                      <TableCell>{activity.activities.brand}</TableCell>
-                      <TableCell>{activity.activities.city}</TableCell>
-                      <TableCell>{activity.activities.location}</TableCell>
-                      <TableCell>
-                        {format(new Date(activity.activities.start_date), 'PPP')}
-                      </TableCell>
-                      <TableCell>{activity.creator_name}</TableCell>
-                      <TableCell>
-                        {format(new Date(activity.created_at), 'PPP')}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <MyActivitiesTable 
+                activities={myActivities} 
+                onRowClick={handleRowClick}
+              />
             </div>
 
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                  />
-                </PaginationItem>
-                {renderPagination()}
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+            <ActivityPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         )}
       </div>
