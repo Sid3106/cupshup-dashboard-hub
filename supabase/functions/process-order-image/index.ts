@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -17,6 +18,8 @@ serve(async (req) => {
       throw new Error('No image URL provided')
     }
 
+    console.log('Processing image:', imageUrl)
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -27,35 +30,35 @@ serve(async (req) => {
         model: 'gpt-4o',
         messages: [
           {
-            role: 'system',
-            content: 'You are an OCR assistant. Extract only the order ID from the image. Return only the order ID number, nothing else.',
-          },
-          {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Please extract the order ID from this image. Return only the order ID number.',
+                text: 'Extract the order ID from this image. Return only the order ID number, nothing else.',
               },
               {
                 type: 'image_url',
-                image_url: imageUrl,
+                image_url: {
+                  url: imageUrl,
+                },
               },
             ],
           },
         ],
+        max_tokens: 100,
       }),
     })
 
     if (!response.ok) {
       const errorText = await response.text()
       console.error('OpenAI API error response:', errorText)
-      throw new Error(`OpenAI API error: ${errorText}`)
+      throw new Error(`OpenAI API error: ${response.status} ${errorText}`)
     }
 
     const data = await response.json()
+    console.log('OpenAI API response:', data)
     
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+    if (!data.choices?.[0]?.message?.content) {
       console.error('Unexpected API response structure:', data)
       throw new Error('Invalid response from OpenAI API')
     }
@@ -64,13 +67,24 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ orderId }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     )
   } catch (error) {
     console.error('Error processing order image:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }, 
+        status: 500 
+      }
     )
   }
 })
