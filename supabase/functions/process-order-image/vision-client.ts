@@ -3,6 +3,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function formatPrivateKey(key: string): string {
+  // Remove any existing header and footer
+  let formattedKey = key.replace(/-----BEGIN PRIVATE KEY-----/, '')
+    .replace(/-----END PRIVATE KEY-----/, '')
+    .replace(/\s/g, '');
+
+  // Add header and footer back with proper formatting
+  formattedKey = `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
+  return formattedKey;
+}
+
+function base64UrlEncode(str: string): string {
+  return btoa(str)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 export async function createVisionClient() {
   try {
     const credentialsStr = Deno.env.get('GOOGLE_CLOUD_CREDENTIALS');
@@ -17,6 +35,8 @@ export async function createVisionClient() {
       throw new Error('Invalid Google Cloud credentials format');
     }
 
+    // Format the private key properly
+    credentials.private_key = formatPrivateKey(credentials.private_key);
     return credentials;
   } catch (error) {
     console.error('Error creating Vision client:', error);
@@ -29,38 +49,44 @@ export async function detectText(credentials: any, imageBuffer: Uint8Array) {
     console.log('Starting text detection with buffer size:', imageBuffer.length);
     
     // Create JWT token for authentication
-    const jwtHeader = { alg: 'RS256', typ: 'JWT' };
     const now = Math.floor(Date.now() / 1000);
+    const jwtHeader = { alg: 'RS256', typ: 'JWT' };
     const jwtClaimSet = {
       iss: credentials.client_email,
       sub: credentials.client_email,
       aud: 'https://vision.googleapis.com/',
       iat: now,
       exp: now + 3600,
+      scope: 'https://www.googleapis.com/auth/cloud-platform'
     };
 
     // Encode JWT parts
-    const encoder = new TextEncoder();
-    const headerB64 = btoa(JSON.stringify(jwtHeader));
-    const claimB64 = btoa(JSON.stringify(jwtClaimSet));
+    const headerB64 = base64UrlEncode(JSON.stringify(jwtHeader));
+    const claimB64 = base64UrlEncode(JSON.stringify(jwtClaimSet));
     const signInput = `${headerB64}.${claimB64}`;
 
-    // Sign JWT
-    const key = await crypto.subtle.importKey(
+    // Convert private key to proper format for crypto.subtle
+    const binaryKey = new TextEncoder().encode(credentials.private_key);
+    const importedKey = await crypto.subtle.importKey(
       'pkcs8',
-      new TextEncoder().encode(credentials.private_key),
-      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      binaryKey,
+      {
+        name: 'RSASSA-PKCS1-v1_5',
+        hash: { name: 'SHA-256' }
+      },
       false,
       ['sign']
     );
-    
+
+    // Sign the JWT
     const signature = await crypto.subtle.sign(
       { name: 'RSASSA-PKCS1-v1_5' },
-      key,
-      encoder.encode(signInput)
+      importedKey,
+      new TextEncoder().encode(signInput)
     );
 
-    const jwt = `${signInput}.${btoa(String.fromCharCode(...new Uint8Array(signature)))}`;
+    const signatureB64 = base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
+    const jwt = `${signInput}.${signatureB64}`;
 
     // Prepare request to Vision API
     const base64Image = btoa(String.fromCharCode(...imageBuffer));
@@ -75,9 +101,11 @@ export async function detectText(credentials: any, imageBuffer: Uint8Array) {
       }]
     };
 
+    console.log('Making request to Vision API...');
+    
     // Make request to Vision API
     const response = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate`,
+      'https://vision.googleapis.com/v1/images:annotate',
       {
         method: 'POST',
         headers: {
@@ -95,7 +123,7 @@ export async function detectText(credentials: any, imageBuffer: Uint8Array) {
     }
 
     const result = await response.json();
-    console.log('Raw Vision API response:', JSON.stringify(result));
+    console.log('Vision API response received');
 
     if (!result.responses?.[0]?.textAnnotations?.length) {
       console.log('No text detected in image');
