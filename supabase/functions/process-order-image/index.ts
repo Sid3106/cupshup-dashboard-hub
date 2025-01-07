@@ -13,12 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    // Log request details for debugging
-    console.log('Processing request:', {
-      method: req.method,
-      headers: Object.fromEntries(req.headers.entries()),
-    });
-
     // Get and validate request body
     const bodyText = await req.text();
     console.log('Raw request body:', bodyText);
@@ -60,18 +54,20 @@ serve(async (req) => {
     // Fetch the image data
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
+      console.error('Failed to fetch image:', imageResponse.statusText);
       throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
     }
 
     // Get image buffer
     const imageBuffer = await imageResponse.arrayBuffer();
+    console.log('Image buffer size:', imageBuffer.byteLength);
 
     // Initialize Vision API client
     console.log('Initializing Vision API client');
     
     const credentialsStr = Deno.env.get('GOOGLE_CLOUD_CREDENTIALS');
     if (!credentialsStr) {
-      console.error('Google Cloud credentials environment variable not found');
+      console.error('Google Cloud credentials not found in environment');
       return new Response(
         JSON.stringify({ 
           error: 'Google Cloud credentials not configured',
@@ -87,6 +83,7 @@ serve(async (req) => {
     let credentials;
     try {
       credentials = JSON.parse(credentialsStr);
+      console.log('Successfully parsed credentials JSON');
     } catch (error) {
       console.error('Failed to parse Google Cloud credentials:', error);
       return new Response(
@@ -101,12 +98,16 @@ serve(async (req) => {
       );
     }
 
-    if (!credentials.project_id || !credentials.private_key || !credentials.client_email) {
-      console.error('Invalid Google Cloud credentials structure');
+    // Validate credentials structure
+    const requiredFields = ['project_id', 'private_key', 'client_email'];
+    const missingFields = requiredFields.filter(field => !credentials[field]);
+    
+    if (missingFields.length > 0) {
+      console.error('Missing required fields in credentials:', missingFields);
       return new Response(
         JSON.stringify({ 
           error: 'Invalid Google Cloud credentials',
-          details: 'Credentials missing required fields'
+          details: `Missing required fields: ${missingFields.join(', ')}`
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -115,64 +116,83 @@ serve(async (req) => {
       );
     }
 
-    const client = new ImageAnnotatorClient({
-      credentials: credentials,
-    });
+    try {
+      const client = new ImageAnnotatorClient({
+        credentials: credentials,
+      });
+      console.log('Successfully created Vision API client');
 
-    console.log('Performing OCR on image');
-    // Perform OCR on the image
-    const [result] = await client.textDetection({
-      image: {
-        content: new Uint8Array(imageBuffer)
+      console.log('Performing OCR on image');
+      const [result] = await client.textDetection({
+        image: {
+          content: new Uint8Array(imageBuffer)
+        }
+      });
+
+      console.log('Raw OCR result:', result?.textAnnotations?.[0]?.description);
+
+      if (!result?.textAnnotations?.length) {
+        console.log('No text detected in image');
+        return new Response(
+          JSON.stringify({ 
+            error: 'No text detected in the image',
+            details: 'Please ensure the image contains clear, readable text.'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 422
+          }
+        );
       }
-    });
 
-    const detections = result.textAnnotations;
-    console.log('Raw OCR result:', detections?.[0]?.description);
+      // Extract order ID using regex pattern
+      const text = result.textAnnotations[0].description;
+      console.log('Extracted text:', text);
+      
+      const orderIdMatch = text.match(/[A-Z0-9]{4,}/i);
+      console.log('Order ID match:', orderIdMatch);
 
-    if (!detections || detections.length === 0) {
-      console.log('No text detected in image');
+      if (!orderIdMatch) {
+        console.log('No order ID pattern found in text');
+        return new Response(
+          JSON.stringify({ 
+            error: 'No order ID found',
+            details: 'Could not detect an order ID pattern in the image text.'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 422
+          }
+        );
+      }
+
+      const orderId = orderIdMatch[0];
+      console.log('Successfully extracted Order ID:', orderId);
+
+      return new Response(
+        JSON.stringify({ orderId }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } catch (error) {
+      console.error('Error using Vision API:', error);
       return new Response(
         JSON.stringify({ 
-          error: 'Could not detect any text in the image. Please ensure the image contains clear, readable text.' 
+          error: 'Vision API error',
+          details: error.message
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 422
+          status: 500
         }
       );
     }
-
-    // Extract order ID using regex pattern
-    const text = detections[0].description;
-    const orderIdMatch = text.match(/[A-Z0-9]{4,}/i);
-
-    if (!orderIdMatch) {
-      console.log('No order ID pattern found in text');
-      return new Response(
-        JSON.stringify({ 
-          error: 'Could not detect an order ID in the image. Please ensure the image contains clear, readable text.' 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 422
-        }
-      );
-    }
-
-    const orderId = orderIdMatch[0];
-    console.log('Successfully extracted Order ID:', orderId);
-
-    return new Response(
-      JSON.stringify({ orderId }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
 
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error('Unhandled error:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to process the request',
+        error: 'Server error',
         details: error.message 
       }),
       { 
