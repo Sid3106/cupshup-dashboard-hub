@@ -24,9 +24,9 @@ const formSchema = z.object({
   end_date: z.date({
     required_error: "End date is required",
   }),
-  latitude: z.string().transform(val => Number(val)),
-  longitude: z.string().transform(val => Number(val)),
-  contract_value: z.string().transform(val => Number(val)),
+  latitude: z.string().transform(val => val ? Number(val) : null),
+  longitude: z.string().transform(val => val ? Number(val) : null),
+  contract_value: z.string().transform(val => val ? Number(val) : null),
   activity_description: z.string().optional(),
 });
 
@@ -58,9 +58,9 @@ export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
         location: data.location,
         start_date: data.start_date.toISOString(),
         end_date: data.end_date.toISOString(),
-        latitude: data.latitude || null,
-        longitude: data.longitude || null,
-        contract_value: data.contract_value || null,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        contract_value: data.contract_value,
         activity_description: data.activity_description,
         created_by: user.id,
       };

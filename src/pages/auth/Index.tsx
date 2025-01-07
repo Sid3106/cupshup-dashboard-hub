@@ -15,8 +15,9 @@ export default function AuthPage() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleAuthStateChange = async ({ event, session }: any) => {
-      console.log("Auth state changed:", event, session);
+    const handleAuthStateChange = async (event: string, session: any) => {
+      console.log("Auth state changed - Event:", event);
+      console.log("Auth state changed - Session:", session);
       
       if (event === "SIGNED_IN" && session) {
         setIsLoading(true);
@@ -100,7 +101,7 @@ export default function AuthPage() {
     // Check if user is already signed in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        handleAuthStateChange({ event: "SIGNED_IN", session });
+        handleAuthStateChange("SIGNED_IN", session);
       }
     });
 
@@ -166,18 +167,7 @@ export default function AuthPage() {
               redirectTo={redirectURL}
               onlyThirdPartyProviders={false}
               magicLink={true}
-              localization={{
-                variables: {
-                  sign_in: {
-                    email_label: 'Email address',
-                    password_label: 'Password',
-                    button_label: 'Sign in',
-                    loading_button_label: 'Signing in...',
-                    social_provider_text: 'Sign in with {{provider}}',
-                    link_text: 'Already have an account? Sign in',
-                  },
-                },
-              }}
+              view="sign_in"
             />
           </CardContent>
         </Card>
