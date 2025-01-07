@@ -52,7 +52,7 @@ export default function TestPage() {
         .from('order_images')
         .getPublicUrl(fileName);
 
-      // Process image with OCR using Edge Function
+      // Process image with Google Cloud Vision API using Edge Function
       const { data, error: ocrError } = await supabase.functions
         .invoke('process-order-image', {
           body: { imageUrl: publicUrl },
@@ -99,7 +99,7 @@ export default function TestPage() {
         <div>
           <h2 className="text-2xl font-bold">Test Order Processing</h2>
           <p className="text-muted-foreground">
-            Upload an order image to extract the order ID using OCR
+            Upload an order image to extract the order ID using Google Cloud Vision OCR
           </p>
         </div>
 

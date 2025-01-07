@@ -1,6 +1,5 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createWorker } from 'https://esm.sh/tesseract.js@5.0.3';
+import { vision } from "npm:@google-cloud/vision@4.0.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,69 +27,65 @@ serve(async (req) => {
       throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
     }
 
-    // Initialize Tesseract worker
-    const worker = await createWorker();
-    
-    try {
-      // Convert image to blob
-      const imageBlob = await imageResponse.blob();
-      
-      // Initialize worker with English language
-      await worker.loadLanguage('eng');
-      await worker.initialize('eng');
-      
-      // Set parameters for better text recognition
-      await worker.setParameters({
-        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-', // Limit to alphanumeric and hyphen
-        preserve_interword_spaces: '1',
-      });
-      
-      console.log('Starting OCR processing...');
-      
-      // Perform OCR on the image
-      const { data: { text } } = await worker.recognize(imageBlob);
-      
-      console.log('Raw OCR result:', text);
-      
-      // Clean up worker
-      await worker.terminate();
-      
-      // Extract order ID using regex pattern
-      // Looking for alphanumeric strings (at least 4 characters)
-      const orderIdMatch = text.match(/[A-Z0-9]{4,}/i);
-      
-      if (!orderIdMatch) {
-        console.log('No order ID found in text');
-        return new Response(
-          JSON.stringify({ error: 'Could not detect an order ID in the image. Please ensure the image contains clear, readable text.' }),
-          { 
-            headers: { 
-              ...corsHeaders, 
-              'Content-Type': 'application/json' 
-            },
-            status: 422
-          }
-        );
-      }
-      
-      const orderId = orderIdMatch[0];
-      console.log('Extracted Order ID:', orderId);
+    // Get image buffer
+    const imageBuffer = await imageResponse.arrayBuffer();
 
+    // Initialize Vision API client
+    const credentials = JSON.parse(Deno.env.get('GOOGLE_CLOUD_CREDENTIALS') || '{}');
+    const client = new vision.ImageAnnotatorClient({
+      credentials: credentials,
+    });
+
+    console.log('Initialized Vision API client');
+
+    // Perform OCR on the image
+    const [result] = await client.textDetection({
+      image: {
+        content: new Uint8Array(imageBuffer)
+      }
+    });
+
+    const detections = result.textAnnotations;
+    console.log('Raw OCR result:', detections?.[0]?.description);
+
+    if (!detections || detections.length === 0) {
+      throw new Error('No text detected in the image');
+    }
+
+    // Extract order ID using regex pattern
+    // Looking for alphanumeric strings (at least 4 characters)
+    const text = detections[0].description;
+    const orderIdMatch = text.match(/[A-Z0-9]{4,}/i);
+
+    if (!orderIdMatch) {
+      console.log('No order ID found in text');
       return new Response(
-        JSON.stringify({ orderId }),
+        JSON.stringify({ 
+          error: 'Could not detect an order ID in the image. Please ensure the image contains clear, readable text.' 
+        }),
         { 
           headers: { 
             ...corsHeaders, 
             'Content-Type': 'application/json' 
-          } 
+          },
+          status: 422
         }
       );
-    } finally {
-      // Ensure worker is terminated even if an error occurs
-      if (worker) {
-        await worker.terminate();
-      }
     }
+
+    const orderId = orderIdMatch[0];
+    console.log('Extracted Order ID:', orderId);
+
+    return new Response(
+      JSON.stringify({ orderId }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    );
+
   } catch (error) {
     console.error('Error processing order image:', error);
     return new Response(
