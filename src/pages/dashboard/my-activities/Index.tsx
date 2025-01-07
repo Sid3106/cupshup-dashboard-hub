@@ -36,12 +36,12 @@ export default function MyActivitiesPage() {
         return;
       }
 
-      // First get the vendor ID for the current user
+      // Get the vendor ID using maybeSingle() instead of single()
       const { data: vendorData, error: vendorError } = await supabase
         .from('vendors')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (vendorError) {
         console.error('Error fetching vendor:', vendorError);
@@ -124,7 +124,6 @@ export default function MyActivitiesPage() {
             : 'Unknown'
         }));
 
-      console.log('Transformed activities:', transformedActivities);
       setMyActivities(transformedActivities);
     } catch (error) {
       console.error('Error fetching my activities:', error);

@@ -1,6 +1,17 @@
+export interface Activity {
+  id: string;
+  activity_id: string;
+  brand: string;
+  city: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+  created_by: string;
+}
+
 export interface MyActivity {
   id: string;
-  activity_mapping_id: string;
+  activity_mapping_id: string | null;
   created_at: string;
   activities: {
     id: string;
@@ -10,7 +21,7 @@ export interface MyActivity {
     start_date: string;
     created_by: string;
   };
-  creator_name?: string;
+  creator_name: string;
 }
 
 export interface ActivityTableProps {
