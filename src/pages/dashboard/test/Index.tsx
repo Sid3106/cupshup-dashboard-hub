@@ -5,16 +5,20 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function TestPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setError(null);
+      setOrderId(null);
     }
   };
 
@@ -29,6 +33,9 @@ export default function TestPage() {
     }
 
     setIsLoading(true);
+    setError(null);
+    setOrderId(null);
+
     try {
       // Upload image to Supabase Storage
       const fileExt = file.name.split('.').pop();
@@ -45,30 +52,36 @@ export default function TestPage() {
         .getPublicUrl(fileName);
 
       // Process image with OCR using Edge Function
-      const { data: ocrData, error: ocrError } = await supabase.functions
+      const { data, error: ocrError } = await supabase.functions
         .invoke('process-order-image', {
           body: { imageUrl: publicUrl },
         });
 
       if (ocrError) throw ocrError;
 
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
+
       // Save to database
       const { error: dbError } = await supabase
         .from('test')
         .insert({
           order_image: publicUrl,
-          order_id: ocrData.orderId,
+          order_id: data.orderId,
         });
 
       if (dbError) throw dbError;
 
-      setOrderId(ocrData.orderId);
+      setOrderId(data.orderId);
       toast({
         title: "Success",
         description: "Order image processed successfully",
       });
     } catch (error) {
       console.error('Error processing order:', error);
+      setError('Failed to process the image. Please try again.');
       toast({
         title: "Error",
         description: "Failed to process order image",
@@ -103,9 +116,17 @@ export default function TestPage() {
             <Button
               onClick={handleSubmit}
               disabled={!file || isLoading}
+              className="w-full"
             >
               {isLoading ? "Processing..." : "Submit"}
             </Button>
+            
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             {orderId && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <p className="font-medium">Extracted Order ID:</p>

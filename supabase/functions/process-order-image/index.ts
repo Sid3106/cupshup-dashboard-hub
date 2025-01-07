@@ -32,7 +32,7 @@ serve(async (req) => {
     const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
     const base64Url = `data:${imageResponse.headers.get('content-type') || 'image/jpeg'};base64,${base64Image}`;
 
-    // Call OpenAI API
+    // Call OpenAI API with improved prompt
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -47,7 +47,7 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: 'Extract the order ID from this image. Return only the order ID number, nothing else.',
+                text: 'Extract ONLY the order ID number from this image. If you cannot find a clear order ID, respond with exactly "NO_ORDER_ID_FOUND". The order ID should be a clear numerical or alphanumeric sequence.',
               },
               {
                 type: 'image_url',
@@ -75,10 +75,24 @@ serve(async (req) => {
       throw new Error('Invalid response from OpenAI API');
     }
 
-    const orderId = data.choices[0].message.content.trim();
+    const content = data.choices[0].message.content.trim();
+    
+    // Check if the model couldn't find an order ID
+    if (content === 'NO_ORDER_ID_FOUND') {
+      return new Response(
+        JSON.stringify({ error: 'Failed to read the Order ID from the image' }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          },
+          status: 422 // Using 422 to indicate processing error
+        }
+      );
+    }
 
     return new Response(
-      JSON.stringify({ orderId }),
+      JSON.stringify({ orderId: content }),
       { 
         headers: { 
           ...corsHeaders, 
@@ -89,7 +103,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing order image:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Failed to process the image. Please try again.' }),
       { 
         headers: { 
           ...corsHeaders, 
