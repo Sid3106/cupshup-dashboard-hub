@@ -54,7 +54,7 @@ export default function ActivitiesPage() {
         setTotalPages(Math.ceil(count / itemsPerPage));
       }
 
-      // Then fetch the paginated activities with creator information
+      // Then fetch the paginated activities
       const { data, error } = await supabase
         .from('activities')
         .select(`
@@ -64,7 +64,7 @@ export default function ActivitiesPage() {
           location,
           start_date,
           created_by,
-          creator:profiles!inner(name)
+          profiles!activities_created_by_fkey(name)
         `)
         .order('start_date', { ascending: false })
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
@@ -78,7 +78,7 @@ export default function ActivitiesPage() {
         city: activity.city,
         location: activity.location,
         start_date: activity.start_date,
-        creator_name: activity.creator?.name || 'Unknown'
+        creator_name: activity.profiles?.[0]?.name || 'Unknown'
       }));
 
       setActivities(transformedData);
