@@ -180,7 +180,7 @@ export default function AuthPage() {
               providers={[]}
               redirectTo={redirectURL}
               onlyThirdPartyProviders={false}
-              magicLink={true}
+              magicLink={false}
               view="sign_in"
             />
           </CardContent>
