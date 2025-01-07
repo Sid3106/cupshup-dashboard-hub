@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { vision } from "npm:@google-cloud/vision@4.0.2";
+import { ImageAnnotatorClient } from "npm:@google-cloud/vision@4.0.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,7 +40,7 @@ serve(async (req) => {
     // Initialize Vision API client
     console.log('Initializing Vision API client');
     const credentials = JSON.parse(Deno.env.get('GOOGLE_CLOUD_CREDENTIALS') || '{}');
-    const client = new vision.ImageAnnotatorClient({
+    const client = new ImageAnnotatorClient({
       credentials: credentials,
     });
 
