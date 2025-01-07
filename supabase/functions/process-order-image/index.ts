@@ -56,7 +56,6 @@ serve(async (req) => {
             ],
           },
         ],
-        max_tokens: 100,
       }),
     })
 
