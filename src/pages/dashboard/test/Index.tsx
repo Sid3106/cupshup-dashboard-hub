@@ -72,11 +72,21 @@ export default function TestPage() {
       }
 
       if (data.error) {
+        // Check if the error is related to OCR failure
+        if (data.error.includes('No text detected') || !data.orderId) {
+          setError('Not able to fetch, please upload image again');
+          return;
+        }
         setError(data.error);
         return;
       }
 
-      // Save to database
+      // Save to database only if we have a valid order ID
+      if (!data.orderId) {
+        setError('Not able to fetch, please upload image again');
+        return;
+      }
+
       const { error: dbError } = await supabase
         .from('test')
         .insert({
@@ -93,7 +103,7 @@ export default function TestPage() {
       });
     } catch (error: any) {
       console.error('Error processing order:', error);
-      setError(error.message || 'Failed to process the image. Please try again.');
+      setError('Not able to fetch, please upload image again');
       toast({
         title: "Error",
         description: "Failed to process order image",
