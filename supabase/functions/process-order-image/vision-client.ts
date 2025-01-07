@@ -8,6 +8,25 @@ function base64UrlEncode(str: string): string {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+// Function to format private key by removing headers and line breaks
+function formatPrivateKey(privateKey: string): string {
+  return privateKey
+    .replace('-----BEGIN PRIVATE KEY-----', '')
+    .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\n/g, '')
+    .trim();
+}
+
+// Function to decode base64 to array buffer
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
 export async function createVisionClient() {
   try {
     const credentialsStr = Deno.env.get('GOOGLE_CLOUD_CREDENTIALS');
@@ -54,10 +73,14 @@ export async function detectText(credentials: any, imageBuffer: Uint8Array): Pro
     console.log('Preparing to sign JWT...');
 
     try {
+      // Format and prepare the private key
+      const formattedKey = formatPrivateKey(credentials.private_key);
+      const keyData = base64ToArrayBuffer(formattedKey);
+
       // Import the private key
       const privateKey = await crypto.subtle.importKey(
         'pkcs8',
-        new TextEncoder().encode(credentials.private_key),
+        keyData,
         {
           name: 'RSASSA-PKCS1-v1_5',
           hash: { name: 'SHA-256' }
