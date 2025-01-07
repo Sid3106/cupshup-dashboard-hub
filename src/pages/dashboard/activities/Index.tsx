@@ -26,7 +26,7 @@ interface ActivityWithCreator {
   city: string;
   location: string;
   start_date: string;
-  creator_name: string | null;
+  creator_name: string;
 }
 
 export default function ActivitiesPage() {
@@ -55,7 +55,7 @@ export default function ActivitiesPage() {
       }
 
       // Then fetch the paginated activities
-      const { data, error } = await supabase
+      const { data: activitiesData, error: activitiesError } = await supabase
         .from('activities')
         .select(`
           id,
@@ -63,22 +63,35 @@ export default function ActivitiesPage() {
           city,
           location,
           start_date,
-          created_by,
-          profiles!activities_created_by_fkey(name)
+          created_by
         `)
         .order('start_date', { ascending: false })
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
-      if (error) throw error;
+      if (activitiesError) throw activitiesError;
+
+      // Fetch profiles for the creators
+      const creatorIds = activitiesData?.map(activity => activity.created_by) || [];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, name')
+        .in('user_id', creatorIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of user_id to profile name for quick lookup
+      const profileMap = new Map(
+        profilesData?.map(profile => [profile.user_id, profile.name]) || []
+      );
 
       // Transform the data to match our interface
-      const transformedData: ActivityWithCreator[] = (data || []).map(activity => ({
+      const transformedData: ActivityWithCreator[] = (activitiesData || []).map(activity => ({
         id: activity.id,
         brand: activity.brand,
         city: activity.city,
         location: activity.location,
         start_date: activity.start_date,
-        creator_name: activity.profiles?.[0]?.name || 'Unknown'
+        creator_name: profileMap.get(activity.created_by) || 'Unknown'
       }));
 
       setActivities(transformedData);
