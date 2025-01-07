@@ -45,9 +45,10 @@ serve(async (req) => {
 
     // Detect text in image using REST API
     const detectedText = await detectText(credentials, imageBuffer);
-    console.log('Text detection completed:', detectedText);
+    console.log('Text detection completed. Detected text:', detectedText);
     
     if (!detectedText) {
+      console.log('No text detected in the image');
       return new Response(
         JSON.stringify({ 
           error: 'No text detected in the image',
@@ -59,7 +60,10 @@ serve(async (req) => {
 
     // Extract order ID
     const orderId = extractOrderId(detectedText);
+    console.log('Extracted order ID:', orderId);
+    
     if (!orderId) {
+      console.log('No order ID pattern found in the detected text');
       return new Response(
         JSON.stringify({ 
           error: 'No order ID pattern found in the detected text',
