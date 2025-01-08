@@ -1,8 +1,8 @@
 import { NavLink } from "react-router-dom";
 import { 
-  PresentationChart, 
+  Presentation, 
   Bot, 
-  Tool, 
+  Wrench, 
   FileSpreadsheet 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ export function ClientNavigation() {
           )
         }
       >
-        <PresentationChart className="h-4 w-4" />
+        <Presentation className="h-4 w-4" />
         <span>Campaign Management</span>
       </NavLink>
       <NavLink
@@ -43,7 +43,7 @@ export function ClientNavigation() {
           )
         }
       >
-        <Tool className="h-4 w-4" />
+        <Wrench className="h-4 w-4" />
         <span>AI Tools</span>
       </NavLink>
       <NavLink
