@@ -19,6 +19,18 @@ export default function AuthPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [view, setView] = useState<'sign_in' | 'update_password'>('sign_in');
 
+  useEffect(() => {
+    // Clear any existing sessions on mount
+    const clearSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        await supabase.auth.signOut();
+      }
+    };
+    
+    clearSession();
+  }, []);
+
   const handleError = (error: AuthError) => {
     console.error('Auth Error:', error);
     let errorMessage = 'An error occurred during authentication.';

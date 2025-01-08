@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionContextProvider } from "@supabase/auth-helpers-react";
+import { toast } from "sonner";
 import DashboardPage from "./pages/dashboard/Index";
 import UsersPage from "./pages/dashboard/users/Index";
 import UserDetailPage from "./pages/dashboard/users/[id]";
@@ -33,13 +34,29 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         if (error) {
           console.error('Auth error:', error);
           setIsAuthenticated(false);
+          toast.error("Session expired. Please sign in again.");
           return;
         }
 
-        setIsAuthenticated(!!session);
+        if (!session) {
+          setIsAuthenticated(false);
+          return;
+        }
+
+        // Verify the session is still valid
+        const { error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          console.error('User verification error:', userError);
+          setIsAuthenticated(false);
+          toast.error("Session expired. Please sign in again.");
+          return;
+        }
+
+        setIsAuthenticated(true);
       } catch (error) {
         console.error('Session check error:', error);
         setIsAuthenticated(false);
+        toast.error("Authentication error. Please sign in again.");
       } finally {
         setIsLoading(false);
       }
@@ -49,11 +66,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
-      if (event === 'SIGNED_OUT') {
+      
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
         setIsAuthenticated(false);
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      } else if (event === 'SIGNED_IN') {
         setIsAuthenticated(true);
       }
+      
+      // Handle session errors
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        toast.error("Session expired. Please sign in again.");
+        setIsAuthenticated(false);
+      }
+      
       setIsLoading(false);
     });
 
