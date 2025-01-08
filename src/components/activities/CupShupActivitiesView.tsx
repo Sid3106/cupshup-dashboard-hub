@@ -25,10 +25,15 @@ export function CupShupActivitiesView() {
         .select('brand_name')
         .order('brand_name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching brands:', error);
+        throw error;
+      }
 
-      const uniqueBrands = [...new Set(data.map(client => client.brand_name))];
-      setBrands(uniqueBrands);
+      if (data) {
+        const uniqueBrands = [...new Set(data.map(client => client.brand_name))];
+        setBrands(uniqueBrands);
+      }
     } catch (error) {
       console.error('Error fetching brands:', error);
       toast.error("Failed to fetch brands");
