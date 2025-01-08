@@ -48,7 +48,9 @@ export function CupShupActivitiesView() {
         .from('activities')
         .select(`
           *,
-          creator:profiles!activities_created_by_fkey (name)
+          profiles!activities_created_by_fkey (
+            name
+          )
         `)
         .order('start_date', { ascending: false });
 
@@ -74,7 +76,7 @@ export function CupShupActivitiesView() {
 
       const transformedData: ActivityWithCreator[] = data.map(activity => ({
         ...activity,
-        creator_name: activity.creator?.name || 'Unknown'
+        creator_name: activity.profiles?.name || 'Unknown'
       }));
 
       setActivities(transformedData);
