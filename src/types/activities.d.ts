@@ -30,17 +30,17 @@ export interface MyActivity {
   creator_name: string;
 }
 
+export interface ActivityWithCreator extends Activity {
+  creator_name: string;
+}
+
 export interface ActivityTableProps {
-  activities: MyActivity[];
-  onRowClick: (id: string) => void;
+  activities: Activity[];
+  onRowClick?: (id: string) => void;
 }
 
 export interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-}
-
-export interface ActivityWithCreator extends Activity {
-  creator_name: string;
 }

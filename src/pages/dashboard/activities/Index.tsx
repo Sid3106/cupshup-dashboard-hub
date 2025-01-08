@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { CupShupActivitiesView } from "@/components/activities/CupShupActivitiesView";
-import { Button } from "@/components/ui/button";
-import { CreateActivityDialog } from "@/components/activities/CreateActivityDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -14,19 +11,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import type { Activity } from "@/types/activities";
 
 export default function ActivitiesPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [activities, setActivities] = useState<any[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     checkUserRole();
-    if (userRole === 'Vendor') {
-      fetchActivities();
-    }
-  }, [userRole]);
+  }, []);
 
   const checkUserRole = async () => {
     try {
@@ -40,8 +36,13 @@ export default function ActivitiesPage() {
         .single();
 
       setUserRole(profile?.role || null);
+
+      if (profile?.role === 'Vendor') {
+        fetchActivities();
+      }
     } catch (error) {
       console.error('Error checking user role:', error);
+      setError("Failed to check user role");
     } finally {
       setIsLoading(false);
     }
@@ -49,20 +50,16 @@ export default function ActivitiesPage() {
 
   const fetchActivities = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('activities')
-        .select(`
-          *,
-          profiles!activities_created_by_fkey (
-            name
-          )
-        `)
+        .select('*')
         .order('start_date', { ascending: false });
 
-      if (error) throw error;
-      setActivities(data);
+      if (fetchError) throw fetchError;
+      setActivities(data || []);
     } catch (error) {
       console.error('Error fetching activities:', error);
+      setError("Failed to fetch activities");
     }
   };
 
@@ -76,19 +73,29 @@ export default function ActivitiesPage() {
     );
   }
 
+  if (error) {
+    return (
+      <DashboardLayout>
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div>
           <h1 className="text-2xl font-bold">
             {userRole === 'Vendor' ? 'All Activities' : 'Activities'}
           </h1>
-          {userRole === 'CupShup' && (
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Activity
-            </Button>
-          )}
+          <p className="text-muted-foreground">
+            {userRole === 'Vendor' 
+              ? 'View all available activities' 
+              : 'Manage and assign activities'}
+          </p>
         </div>
 
         {userRole === 'CupShup' ? (
@@ -102,7 +109,8 @@ export default function ActivitiesPage() {
                   <TableHead>City</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Start Date</TableHead>
-                  <TableHead>Created By</TableHead>
+                  <TableHead>End Date</TableHead>
+                  <TableHead>Activity ID</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -114,23 +122,25 @@ export default function ActivitiesPage() {
                     <TableCell>
                       {format(new Date(activity.start_date), 'PPP')}
                     </TableCell>
-                    <TableCell>{activity.profiles?.name || 'Unknown'}</TableCell>
+                    <TableCell>
+                      {format(new Date(activity.end_date), 'PPP')}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {activity.activity_id}
+                    </TableCell>
                   </TableRow>
                 ))}
+                {activities.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">
+                      No activities found
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
         )}
-
-        <CreateActivityDialog
-          open={showCreateDialog}
-          onOpenChange={setShowCreateDialog}
-          onSuccess={() => {
-            if (userRole === 'CupShup') {
-              window.location.reload();
-            }
-          }}
-        />
       </div>
     </DashboardLayout>
   );
