@@ -4,6 +4,7 @@ import { ActivityCard } from "./ActivityCard";
 import { supabase } from "@/integrations/supabase/client";
 import { ActivityWithCreator } from "@/types/activities";
 import { CITIES } from "@/constants/formOptions";
+import { toast } from "sonner";
 
 export function CupShupActivitiesView() {
   const [activities, setActivities] = useState<ActivityWithCreator[]>([]);
@@ -30,6 +31,7 @@ export function CupShupActivitiesView() {
       setBrands(uniqueBrands);
     } catch (error) {
       console.error('Error fetching brands:', error);
+      toast.error("Failed to fetch brands");
     }
   };
 
@@ -41,7 +43,7 @@ export function CupShupActivitiesView() {
         .from('activities')
         .select(`
           *,
-          profiles:created_by (
+          profiles (
             name
           )
         `)
@@ -59,6 +61,11 @@ export function CupShupActivitiesView() {
 
       if (error) throw error;
 
+      if (!data) {
+        setActivities([]);
+        return;
+      }
+
       const transformedData: ActivityWithCreator[] = data.map(activity => ({
         ...activity,
         creator_name: activity.profiles?.name || 'Unknown'
@@ -67,6 +74,7 @@ export function CupShupActivitiesView() {
       setActivities(transformedData);
     } catch (error) {
       console.error('Error fetching activities:', error);
+      toast.error("Failed to fetch activities");
     } finally {
       setIsLoading(false);
     }
