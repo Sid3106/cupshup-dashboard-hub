@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
 import { ActivityCard } from "./ActivityCard";
+import { CreateActivityDialog } from "./CreateActivityDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { ActivityWithCreator } from "@/types/activities";
 import { CITIES } from "@/constants/formOptions";
@@ -12,6 +15,7 @@ export function CupShupActivitiesView() {
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBrand, setSelectedBrand] = useState<string>("");
   const [brands, setBrands] = useState<string[]>([]);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchBrands();
@@ -90,43 +94,52 @@ export function CupShupActivitiesView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-4">
-        <div className="w-48">
-          <Select
-            value={selectedCity}
-            onValueChange={setSelectedCity}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by City" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">All Cities</SelectItem>
-              {CITIES.map((city) => (
-                <SelectItem key={city} value={city}>
-                  {city}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="flex justify-between items-center">
+        <div className="flex gap-4">
+          <div className="w-48">
+            <Select
+              value={selectedCity}
+              onValueChange={setSelectedCity}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by City" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">All Cities</SelectItem>
+                {CITIES.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-48">
+            <Select
+              value={selectedBrand}
+              onValueChange={setSelectedBrand}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by Brand" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">All Brands</SelectItem>
+                {brands.map((brand) => (
+                  <SelectItem key={brand} value={brand}>
+                    {brand}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="w-48">
-          <Select
-            value={selectedBrand}
-            onValueChange={setSelectedBrand}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by Brand" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">All Brands</SelectItem>
-              {brands.map((brand) => (
-                <SelectItem key={brand} value={brand}>
-                  {brand}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Button 
+          onClick={() => setCreateDialogOpen(true)}
+          className="bg-[#00A979] hover:bg-[#00A979]/90"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Create Activity
+        </Button>
       </div>
 
       {isLoading ? (
@@ -142,6 +155,12 @@ export function CupShupActivitiesView() {
           ))}
         </div>
       )}
+
+      <CreateActivityDialog 
+        open={createDialogOpen} 
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={fetchActivities}
+      />
     </div>
   );
 }
