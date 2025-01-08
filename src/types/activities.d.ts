@@ -13,13 +13,13 @@ export interface Activity {
   created_at: string;
   updated_at: string;
   created_by: string;
+  creator?: {
+    name: string | null;
+  };
 }
 
 export interface ActivityWithCreator extends Activity {
   creator_name: string;
-  profiles?: {
-    name: string | null;
-  };
 }
 
 export interface MyActivity {
