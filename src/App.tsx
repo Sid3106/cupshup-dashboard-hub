@@ -21,8 +21,6 @@ import AuthPage from "./pages/auth/Index";
 import TestPage from "./pages/dashboard/test/Index";
 import ActivityDetailPage from "./pages/dashboard/my-activities/[id]";
 
-const queryClient = new QueryClient();
-
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +49,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setIsAuthenticated(true);
@@ -72,6 +70,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   return isAuthenticated ? <>{children}</> : <Navigate to="/auth" replace />;
 };
+
+const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
