@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft } from "lucide-react";
+import { ActivityLoading } from "@/components/activities/ActivityLoading";
 
 interface ActivityDetail {
   id: string;
@@ -33,55 +34,83 @@ export default function ActivityDetailPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (id) {
-      fetchActivityDetails();
+    if (!id) {
+      setError("Activity ID is required");
+      return;
     }
+    fetchActivityDetails(id);
   }, [id]);
 
-  const fetchActivityDetails = async () => {
+  const fetchActivityDetails = async (activityId: string) => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const { data: activityData, error: activityError } = await supabase
-        .from('activities')
-        .select(`
-          *,
-          activity_mapped (
-            created_at,
-            message
-          )
-        `)
-        .eq('id', id)
-        .single();
-
-      if (activityError) throw activityError;
-
-      if (!activityData) {
-        setError("Activity not found");
-        return;
+      // First, get the vendor's ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        throw new Error("Authentication required");
       }
 
-      // Fetch creator profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('user_id', activityData.created_by)
+      const { data: vendorData, error: vendorError } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('user_id', session.user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (vendorError) throw vendorError;
+      if (!vendorData) throw new Error("Vendor profile not found");
+
+      // Then fetch the activity details with the mapping
+      const { data: mappedActivity, error: mappedError } = await supabase
+        .from('activity_mapped')
+        .select(`
+          created_at,
+          message,
+          activities (
+            id,
+            brand,
+            city,
+            location,
+            start_date,
+            end_date,
+            activity_description,
+            created_by
+          )
+        `)
+        .eq('activity_id', activityId)
+        .eq('vendor_id', vendorData.id)
+        .single();
+
+      if (mappedError) throw mappedError;
+      if (!mappedActivity?.activities) {
+        throw new Error("Activity not found or you don't have access to it");
+      }
+
+      // Fetch creator's profile
+      const { data: creatorProfile, error: creatorError } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('user_id', mappedActivity.activities.created_by)
+        .single();
+
+      if (creatorError) throw creatorError;
 
       setActivity({
-        ...activityData,
-        creator_name: profileData?.name || 'Unknown',
-        mapping: activityData.activity_mapped?.[0]
+        ...mappedActivity.activities,
+        creator_name: creatorProfile?.name || 'Unknown',
+        mapping: {
+          created_at: mappedActivity.created_at,
+          message: mappedActivity.message
+        }
       });
     } catch (error) {
       console.error('Error fetching activity details:', error);
-      setError("Failed to fetch activity details. Please try again later.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch activity details";
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: "Failed to fetch activity details. Please try again later.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -90,7 +119,6 @@ export default function ActivityDetailPage() {
   };
 
   const handleStartWork = () => {
-    // TODO: Implement start work functionality
     toast({
       title: "Success",
       description: "Work started successfully!",
@@ -100,7 +128,7 @@ export default function ActivityDetailPage() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="text-center py-8">Loading activity details...</div>
+        <ActivityLoading />
       </DashboardLayout>
     );
   }
@@ -108,9 +136,21 @@ export default function ActivityDetailPage() {
   if (error || !activity) {
     return (
       <DashboardLayout>
-        <Alert variant="destructive">
-          <AlertDescription>{error || "Activity not found"}</AlertDescription>
-        </Alert>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/dashboard/my-activities')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-2xl font-bold">Activity Details</h1>
+          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{error || "Activity not found"}</AlertDescription>
+          </Alert>
+        </div>
       </DashboardLayout>
     );
   }
