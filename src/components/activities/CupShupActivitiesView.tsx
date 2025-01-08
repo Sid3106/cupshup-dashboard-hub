@@ -47,11 +47,11 @@ export function CupShupActivitiesView() {
         `)
         .order('start_date', { ascending: false });
 
-      if (selectedCity) {
+      if (selectedCity && selectedCity !== "_all") {
         query = query.eq('city', selectedCity);
       }
 
-      if (selectedBrand) {
+      if (selectedBrand && selectedBrand !== "_all") {
         query = query.eq('brand', selectedBrand);
       }
 

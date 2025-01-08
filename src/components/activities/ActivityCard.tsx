@@ -2,11 +2,11 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity } from "@/types/activities";
+import { ActivityWithCreator } from "@/types/activities";
 import { AssignActivityDialog } from "./AssignActivityDialog";
 
 interface ActivityCardProps {
-  activity: Activity;
+  activity: ActivityWithCreator;
 }
 
 export function ActivityCard({ activity }: ActivityCardProps) {
@@ -30,19 +30,15 @@ export function ActivityCard({ activity }: ActivityCardProps) {
                 <p className="font-medium">{activity.location}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <p className="text-sm text-muted-foreground">Start Date</p>
-                <p className="font-medium">
-                  {format(new Date(activity.start_date), "PPP")}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">End Date</p>
-                <p className="font-medium">
-                  {format(new Date(activity.end_date), "PPP")}
-                </p>
-              </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Start Date</p>
+              <p className="font-medium">
+                {format(new Date(activity.start_date), "PPP")}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Created By</p>
+              <p className="font-medium">{activity.creator_name}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Activity ID</p>
