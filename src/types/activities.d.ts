@@ -13,7 +13,7 @@ export interface Activity {
   created_at: string;
   updated_at: string;
   created_by: string;
-  creator?: {
+  profiles?: {
     name: string | null;
   };
 }
