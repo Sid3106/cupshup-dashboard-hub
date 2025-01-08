@@ -48,7 +48,7 @@ export function CupShupActivitiesView() {
         .from('activities')
         .select(`
           *,
-          creator:profiles(name)
+          creator:profiles!activities_created_by_fkey (name)
         `)
         .order('start_date', { ascending: false });
 
