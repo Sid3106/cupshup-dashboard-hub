@@ -14,7 +14,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex-1">
           <DashboardHeader />
           <main className="p-8">
-            <SidebarTrigger className="lg:hidden mb-4" />
+            <div className="lg:hidden mb-4">
+              <SidebarTrigger />
+            </div>
             <div className="max-w-6xl mx-auto">
               {children}
             </div>
