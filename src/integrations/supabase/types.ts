@@ -197,6 +197,83 @@ export type Database = {
         }
         Relationships: []
       }
+      task_mapping: {
+        Row: {
+          activity_id: string
+          activity_mapping_id: string | null
+          assigned_on: string
+          brand: string
+          city: string
+          created_at: string
+          customer_name: string | null
+          customer_number: string | null
+          end_date: string
+          id: string
+          location: string
+          order_id: string | null
+          order_image: string | null
+          products_sold: string | null
+          sales_order: number | null
+          start_date: string
+          start_work_time: string | null
+          updated_at: string
+          vendor_email: string
+          vendor_name: string
+        }
+        Insert: {
+          activity_id: string
+          activity_mapping_id?: string | null
+          assigned_on?: string
+          brand: string
+          city: string
+          created_at?: string
+          customer_name?: string | null
+          customer_number?: string | null
+          end_date: string
+          id?: string
+          location: string
+          order_id?: string | null
+          order_image?: string | null
+          products_sold?: string | null
+          sales_order?: number | null
+          start_date: string
+          start_work_time?: string | null
+          updated_at?: string
+          vendor_email: string
+          vendor_name: string
+        }
+        Update: {
+          activity_id?: string
+          activity_mapping_id?: string | null
+          assigned_on?: string
+          brand?: string
+          city?: string
+          created_at?: string
+          customer_name?: string | null
+          customer_number?: string | null
+          end_date?: string
+          id?: string
+          location?: string
+          order_id?: string | null
+          order_image?: string | null
+          products_sold?: string | null
+          sales_order?: number | null
+          start_date?: string
+          start_work_time?: string | null
+          updated_at?: string
+          vendor_email?: string
+          vendor_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_mapping_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test: {
         Row: {
           created_at: string

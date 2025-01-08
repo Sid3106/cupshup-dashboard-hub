@@ -29,6 +29,7 @@ export default function ActivityDetailPage() {
   const [activity, setActivity] = useState<ActivityDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [workStarted, setWorkStarted] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -39,14 +40,28 @@ export default function ActivityDetailPage() {
       return;
     }
     fetchActivityDetails(id);
+    checkIfWorkStarted(id);
   }, [id]);
+
+  const checkIfWorkStarted = async (activityId: string) => {
+    try {
+      const { data: taskData } = await supabase
+        .from('task_mapping')
+        .select('*')
+        .eq('activity_id', activityId)
+        .single();
+      
+      setWorkStarted(!!taskData);
+    } catch (error) {
+      console.error('Error checking work status:', error);
+    }
+  };
 
   const fetchActivityDetails = async (activityId: string) => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // First, get the vendor's ID
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
         throw new Error("Authentication required");
@@ -61,7 +76,6 @@ export default function ActivityDetailPage() {
       if (vendorError) throw vendorError;
       if (!vendorData) throw new Error("Vendor profile not found");
 
-      // Then fetch the activity details with the mapping
       const { data: mappedActivity, error: mappedError } = await supabase
         .from('activity_mapped')
         .select(`
@@ -87,7 +101,6 @@ export default function ActivityDetailPage() {
         throw new Error("Activity not found or you don't have access to it");
       }
 
-      // Fetch creator's profile
       const { data: creatorProfile, error: creatorError } = await supabase
         .from('profiles')
         .select('name')
@@ -118,11 +131,48 @@ export default function ActivityDetailPage() {
     }
   };
 
-  const handleStartWork = () => {
-    toast({
-      title: "Success",
-      description: "Work started successfully!",
-    });
+  const handleStartWork = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id || !activity) return;
+
+      const { data: vendorData, error: vendorError } = await supabase
+        .from('vendors')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (vendorError) throw vendorError;
+
+      const { error: insertError } = await supabase
+        .from('task_mapping')
+        .insert({
+          activity_id: activity.id,
+          brand: activity.brand,
+          city: activity.city,
+          location: activity.location,
+          start_date: activity.start_date,
+          end_date: activity.end_date,
+          vendor_name: vendorData.vendor_name,
+          vendor_email: vendorData.vendor_email,
+          start_work_time: new Date().toLocaleTimeString('en-US', { hour12: false })
+        });
+
+      if (insertError) throw insertError;
+
+      setWorkStarted(true);
+      toast({
+        title: "Success",
+        description: "Work has been started for the activity",
+      });
+    } catch (error) {
+      console.error('Error starting work:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start work",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -228,8 +278,9 @@ export default function ActivityDetailPage() {
                 className="w-full" 
                 size="lg"
                 onClick={handleStartWork}
+                disabled={workStarted}
               >
-                Start Work
+                {workStarted ? "Add Task" : "Start Work"}
               </Button>
             </div>
           </CardContent>
