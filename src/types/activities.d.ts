@@ -24,13 +24,8 @@ export interface MyActivity {
     city: string;
     location: string;
     start_date: string;
+    created_by: string;
   };
-  vendor_id: string;
-  vendor_name: string;
-  vendor_email: string;
-  vendor_phone: string;
-  message: string | null;
-  assigned_by: string;
   created_at: string;
   creator_name: string;
 }

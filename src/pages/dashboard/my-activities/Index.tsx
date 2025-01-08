@@ -60,10 +60,10 @@ export default function MyActivitiesPage() {
         return;
       }
 
-      // Get the vendor ID
+      // Get the vendor ID - using maybeSingle() instead of single()
       const { data: vendorData, error: vendorError } = await supabase
         .from('vendors')
-        .select('id')
+        .select('id, vendor_name')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -75,7 +75,12 @@ export default function MyActivitiesPage() {
       }
 
       if (!vendorData?.id) {
-        setError("Vendor profile not found. Please contact support.");
+        // Add more detailed error message
+        const errorMsg = "Vendor profile not found. This could be because:\n" +
+          "1. Your vendor profile is not properly set up\n" +
+          "2. There might be a mismatch between your user account and vendor profile\n" +
+          "Please contact support with your email address for assistance.";
+        setError(errorMsg);
         return;
       }
 
@@ -197,7 +202,7 @@ export default function MyActivitiesPage() {
         ) : error ? (
           <Alert variant="destructive">
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
           </Alert>
         ) : myActivities.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
