@@ -19,12 +19,19 @@ export default function AuthPage() {
   const [view, setView] = useState<'sign_in' | 'update_password'>('sign_in');
 
   useEffect(() => {
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/dashboard');
+      }
+    };
+    
+    checkExistingSession();
+  }, [navigate]);
+
+  useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Clear any existing sessions to prevent stale state
-        await supabase.auth.signOut();
-        
-        // Reset error state
         setAuthError(null);
         
         // Check URL parameters for error messages
@@ -64,24 +71,25 @@ export default function AuthPage() {
             .eq('user_id', user.id)
             .single();
 
-          if (profileError) throw profileError;
+          if (profileError && profileError.code !== 'PGRST116') {
+            throw profileError;
+          }
 
-          if (profile) {
-            navigate('/dashboard');
-          } else {
-            // Handle missing profile
+          if (!profile) {
+            // Create profile if it doesn't exist
             const { error: createProfileError } = await supabase
               .from('profiles')
               .insert([{
                 user_id: user.id,
-                role: 'Client', // Default role
-                phone_number: '', // Required field
-                name: user.email?.split('@')[0] || 'User' // Basic name from email
+                role: 'Client',
+                phone_number: '',
+                name: user.email?.split('@')[0] || 'User'
               }]);
 
             if (createProfileError) throw createProfileError;
-            navigate('/dashboard');
           }
+          
+          navigate('/dashboard');
         } catch (error: any) {
           console.error('Error during sign in:', error);
           const errorMessage = error.message || 'An error occurred during sign in';
@@ -91,7 +99,6 @@ export default function AuthPage() {
             description: errorMessage,
             variant: "destructive",
           });
-          // Sign out on error to prevent invalid session state
           await supabase.auth.signOut();
         } finally {
           setIsLoading(false);
@@ -99,7 +106,6 @@ export default function AuthPage() {
       }
     };
 
-    // Initialize auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     return () => {
