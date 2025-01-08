@@ -14,7 +14,6 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [view, setView] = useState<'sign_in' | 'update_password'>('sign_in');
@@ -22,7 +21,7 @@ export default function AuthPage() {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Clear any stale sessions
+        // Clear any existing sessions to prevent stale state
         await supabase.auth.signOut();
         
         // Reset error state
@@ -45,37 +44,6 @@ export default function AuthPage() {
 
     initializeAuth();
   }, [searchParams]);
-
-  const handleError = (error: AuthError) => {
-    console.error('Auth Error:', error);
-    let errorMessage = 'An error occurred during authentication.';
-    
-    if ('code' in error) {
-      switch (error.code) {
-        case 'invalid_credentials':
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-          break;
-        case 'session_not_found':
-          errorMessage = 'Your session has expired. Please sign in again.';
-          break;
-        case 'user_not_found':
-          errorMessage = 'No account found with these credentials.';
-          break;
-        case 'email_not_confirmed':
-          errorMessage = 'Please verify your email address before signing in.';
-          break;
-        default:
-          errorMessage = error.message;
-      }
-    }
-    
-    setAuthError(errorMessage);
-    toast({
-      title: "Authentication Error",
-      description: errorMessage,
-      variant: "destructive",
-    });
-  };
 
   useEffect(() => {
     const handleAuthStateChange = async (event: string, session: any) => {
@@ -106,7 +74,9 @@ export default function AuthPage() {
               .from('profiles')
               .insert([{
                 user_id: user.id,
-                ...profileData
+                role: 'Client', // Default role
+                phone_number: '', // Required field
+                name: user.email?.split('@')[0] || 'User' // Basic name from email
               }]);
 
             if (createProfileError) throw createProfileError;
@@ -114,16 +84,18 @@ export default function AuthPage() {
           }
         } catch (error: any) {
           console.error('Error during sign in:', error);
-          handleError(error);
+          const errorMessage = error.message || 'An error occurred during sign in';
+          setAuthError(errorMessage);
+          toast({
+            title: "Authentication Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
           // Sign out on error to prevent invalid session state
           await supabase.auth.signOut();
         } finally {
           setIsLoading(false);
         }
-      } else if (event === "SIGNED_OUT") {
-        setAuthError(null);
-      } else if (event === "PASSWORD_RECOVERY") {
-        setView('update_password');
       }
     };
 
@@ -133,7 +105,7 @@ export default function AuthPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, profileData, toast]);
+  }, [navigate, toast]);
 
   if (isLoading) {
     return (
