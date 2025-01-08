@@ -26,10 +26,19 @@ export const VendorActivitiesView = () => {
       setIsLoading(true);
       setError(null);
 
-      // Get the vendor ID
+      // First get the current user's session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user?.id) {
+        setError("Authentication required. Please sign in again.");
+        return;
+      }
+
+      // Get the vendor ID using the user_id
       const { data: vendorData, error: vendorError } = await supabase
         .from('vendors')
         .select('id')
+        .eq('user_id', session.user.id)
         .maybeSingle();
 
       console.log('Vendor data:', vendorData);
