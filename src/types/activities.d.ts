@@ -15,6 +15,13 @@ export interface Activity {
   created_by: string;
 }
 
+export interface ActivityWithCreator extends Activity {
+  creator_name: string;
+  profiles?: {
+    name: string;
+  };
+}
+
 export interface MyActivity {
   id: string;
   activity_mapping_id: string | null;
@@ -30,12 +37,8 @@ export interface MyActivity {
   creator_name: string;
 }
 
-export interface ActivityWithCreator extends Activity {
-  creator_name: string;
-}
-
 export interface ActivityTableProps {
-  activities: Activity[];
+  activities: MyActivity[];
   onRowClick?: (id: string) => void;
 }
 

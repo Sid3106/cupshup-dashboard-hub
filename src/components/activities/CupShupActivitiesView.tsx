@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ActivityCard } from "./ActivityCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,7 +84,7 @@ export function CupShupActivitiesView() {
               <SelectValue placeholder="Filter by City" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Cities</SelectItem>
+              <SelectItem value="_all">All Cities</SelectItem>
               {CITIES.map((city) => (
                 <SelectItem key={city} value={city}>
                   {city}
@@ -103,7 +102,7 @@ export function CupShupActivitiesView() {
               <SelectValue placeholder="Filter by Brand" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Brands</SelectItem>
+              <SelectItem value="_all">All Brands</SelectItem>
               {brands.map((brand) => (
                 <SelectItem key={brand} value={brand}>
                   {brand}
