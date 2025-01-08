@@ -49,11 +49,13 @@ export default function ActivityDetailPage() {
         .from('task_mapping')
         .select('*')
         .eq('activity_id', activityId)
-        .single();
+        .maybeSingle();
       
       setWorkStarted(!!taskData);
     } catch (error) {
       console.error('Error checking work status:', error);
+      // Don't set workStarted to true if there's an error
+      setWorkStarted(false);
     }
   };
 
@@ -71,7 +73,7 @@ export default function ActivityDetailPage() {
         .from('vendors')
         .select('id')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
 
       if (vendorError) throw vendorError;
       if (!vendorData) throw new Error("Vendor profile not found");
@@ -94,7 +96,7 @@ export default function ActivityDetailPage() {
         `)
         .eq('activity_id', activityId)
         .eq('vendor_id', vendorData.id)
-        .single();
+        .maybeSingle();
 
       if (mappedError) throw mappedError;
       if (!mappedActivity?.activities) {
@@ -105,7 +107,7 @@ export default function ActivityDetailPage() {
         .from('profiles')
         .select('name')
         .eq('user_id', mappedActivity.activities.created_by)
-        .single();
+        .maybeSingle();
 
       if (creatorError) throw creatorError;
 
@@ -140,9 +142,10 @@ export default function ActivityDetailPage() {
         .from('vendors')
         .select('*')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
 
       if (vendorError) throw vendorError;
+      if (!vendorData) throw new Error("Vendor data not found");
 
       const { error: insertError } = await supabase
         .from('task_mapping')
@@ -221,52 +224,50 @@ export default function ActivityDetailPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{activity.brand}</CardTitle>
+            <CardTitle>{activity?.brand}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">City</p>
-                <p className="font-medium">{activity.city}</p>
+                <p className="font-medium">{activity?.city}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Location</p>
-                <p className="font-medium">{activity.location}</p>
+                <p className="font-medium">{activity?.location}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Start Date</p>
                 <p className="font-medium">
-                  {format(new Date(activity.start_date), 'PPP')}
+                  {activity?.start_date && format(new Date(activity.start_date), 'PPP')}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">End Date</p>
                 <p className="font-medium">
-                  {format(new Date(activity.end_date), 'PPP')}
+                  {activity?.end_date && format(new Date(activity.end_date), 'PPP')}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Created By</p>
-                <p className="font-medium">{activity.creator_name}</p>
+                <p className="font-medium">{activity?.creator_name}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Assigned On</p>
                 <p className="font-medium">
-                  {activity.mapping?.created_at 
-                    ? format(new Date(activity.mapping.created_at), 'PPP')
-                    : 'N/A'}
+                  {activity?.mapping?.created_at && format(new Date(activity.mapping.created_at), 'PPP')}
                 </p>
               </div>
             </div>
 
-            {activity.activity_description && (
+            {activity?.activity_description && (
               <div>
                 <p className="text-sm text-muted-foreground">Description</p>
                 <p className="font-medium">{activity.activity_description}</p>
               </div>
             )}
 
-            {activity.mapping?.message && (
+            {activity?.mapping?.message && (
               <div>
                 <p className="text-sm text-muted-foreground">Assignment Message</p>
                 <p className="font-medium">{activity.mapping.message}</p>
