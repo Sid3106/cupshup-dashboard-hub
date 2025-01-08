@@ -5,7 +5,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { AuthError, PostgrestError } from "@supabase/supabase-js";
+import { AuthError } from "@supabase/supabase-js";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthSidebar } from "@/components/auth/AuthSidebar";
@@ -19,8 +19,8 @@ export default function AuthPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [view, setView] = useState<'sign_in' | 'update_password'>('sign_in');
 
-  const handleError = (error: AuthError | PostgrestError) => {
-    console.error('Error:', error);
+  const handleError = (error: AuthError) => {
+    console.error('Auth Error:', error);
     let errorMessage = 'An error occurred during authentication.';
     
     if ('code' in error) {
@@ -28,8 +28,8 @@ export default function AuthPage() {
         case 'invalid_credentials':
           errorMessage = 'Invalid email or password. Please check your credentials and try again.';
           break;
-        case 'invalid_grant':
-          errorMessage = 'Invalid login credentials. Please try again.';
+        case 'session_not_found':
+          errorMessage = 'Your session has expired. Please sign in again.';
           break;
         case 'user_not_found':
           errorMessage = 'No account found with these credentials.';
@@ -51,7 +51,6 @@ export default function AuthPage() {
   };
 
   useEffect(() => {
-    // Parse the hash fragment for password reset
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const error = hashParams.get('error') || searchParams.get('error');
     const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
@@ -63,8 +62,7 @@ export default function AuthPage() {
     }
 
     const handleAuthStateChange = async (event: string, session: any) => {
-      console.log("Auth state changed - Event:", event);
-      console.log("Auth state changed - Session:", session);
+      console.log("Auth state changed:", event, session);
       
       if (event === "SIGNED_IN" && session) {
         setIsLoading(true);
@@ -75,16 +73,9 @@ export default function AuthPage() {
             .eq('user_id', session.user.id)
             .single();
 
-          if (profileError) {
-            console.error('Error fetching profile:', profileError);
-            handleError(profileError);
-            return;
-          }
-
-          console.log("User profile:", profile);
+          if (profileError) throw profileError;
 
           if (profileData && !profile) {
-            console.log("Creating profile with data:", profileData);
             const { error: createProfileError } = await supabase
               .from('profiles')
               .insert([{
@@ -92,13 +83,7 @@ export default function AuthPage() {
                 ...profileData
               }]);
 
-            if (createProfileError) {
-              console.error('Profile creation error:', createProfileError);
-              handleError(createProfileError);
-              return;
-            }
-
-            console.log("Profile created successfully");
+            if (createProfileError) throw createProfileError;
           }
 
           navigate('/dashboard');
@@ -109,7 +94,6 @@ export default function AuthPage() {
           setIsLoading(false);
         }
       } else if (event === "SIGNED_OUT") {
-        console.log("User signed out");
         setAuthError(null);
       } else if (event === "PASSWORD_RECOVERY") {
         setView('update_password');
@@ -129,7 +113,13 @@ export default function AuthPage() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Session check error:', error);
+        handleError(error);
+        return;
+      }
       if (session) {
         handleAuthStateChange("SIGNED_IN", session);
       }
@@ -143,12 +133,10 @@ export default function AuthPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00A979]"></div>
       </div>
     );
   }
-
-  const redirectURL = `${window.location.origin}/auth/callback`;
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
@@ -169,14 +157,14 @@ export default function AuthPage() {
                 variables: {
                   default: {
                     colors: {
-                      brand: '#404040',
-                      brandAccent: '#2d2d2d'
+                      brand: '#00A979',
+                      brandAccent: '#008c64'
                     }
                   }
                 }
               }}
               providers={[]}
-              redirectTo={redirectURL}
+              redirectTo={`${window.location.origin}/auth/callback`}
               onlyThirdPartyProviders={false}
               magicLink={false}
               view={view}
