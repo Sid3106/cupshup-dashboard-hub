@@ -17,8 +17,14 @@ export interface Activity {
 
 export interface MyActivity {
   id: string;
-  activity_id: string;
-  activities: Activity;
+  activity_mapping_id: string | null;
+  activities: {
+    id: string;
+    brand: string;
+    city: string;
+    location: string;
+    start_date: string;
+  };
   vendor_id: string;
   vendor_name: string;
   vendor_email: string;
@@ -26,8 +32,6 @@ export interface MyActivity {
   message: string | null;
   assigned_by: string;
   created_at: string;
-  updated_at: string;
-  activity_mapping_id: string | null;
   creator_name: string;
 }
 
