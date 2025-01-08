@@ -6,6 +6,7 @@ import { ActivityPagination } from "@/components/activities/ActivityPagination";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@supabase/auth-helpers-react";
 import type { MyActivity } from "@/types/activities";
 
 export default function MyActivitiesPage() {
@@ -15,32 +16,23 @@ export default function MyActivitiesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
+  const user = useUser();
   const navigate = useNavigate();
   const itemsPerPage = 10;
 
   useEffect(() => {
-    checkSession();
-    fetchMyActivities();
-  }, [currentPage]);
-
-  const checkSession = async () => {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session) {
-      console.error('Session error:', sessionError);
-      navigate('/auth');
-      return;
+    if (user) {
+      fetchMyActivities();
     }
-  };
+  }, [user, currentPage]);
 
   const fetchMyActivities = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        setError("Please sign in to view your activities");
+      if (!user?.id) {
+        setError("User not found");
         return;
       }
 
@@ -48,8 +40,10 @@ export default function MyActivitiesPage() {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
-        .eq('user_id', session.user.id)
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      console.log('Profile data:', profileData);
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
@@ -66,12 +60,14 @@ export default function MyActivitiesPage() {
         return;
       }
 
-      // Get the vendor ID
+      // Get the vendor ID - using maybeSingle() instead of single()
       const { data: vendorData, error: vendorError } = await supabase
         .from('vendors')
-        .select('id')
-        .eq('user_id', session.user.id)
-        .single();
+        .select('id, vendor_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      console.log('Vendor data:', vendorData);
 
       if (vendorError) {
         console.error('Error fetching vendor:', vendorError);
@@ -79,17 +75,27 @@ export default function MyActivitiesPage() {
       }
 
       if (!vendorData?.id) {
-        setError("Vendor profile not found. Please contact support.");
+        // Add more detailed error message
+        const errorMsg = "Vendor profile not found. This could be because:\n" +
+          "1. Your vendor profile is not properly set up\n" +
+          "2. There might be a mismatch between your user account and vendor profile\n" +
+          "Please contact support with your email address for assistance.";
+        setError(errorMsg);
         return;
       }
 
-      // Get the total count
+      // Get the total count of mapped activities for this vendor
       const { count, error: countError } = await supabase
         .from('activity_mapped')
         .select('*', { count: 'exact', head: true })
         .eq('vendor_id', vendorData.id);
 
-      if (countError) throw countError;
+      console.log('Activity count:', count);
+
+      if (countError) {
+        console.error('Error getting count:', countError);
+        throw countError;
+      }
 
       if (count !== null) {
         setTotalPages(Math.ceil(count / itemsPerPage));
@@ -114,7 +120,12 @@ export default function MyActivitiesPage() {
         .eq('vendor_id', vendorData.id)
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
-      if (mappedError) throw mappedError;
+      console.log('Mapped activities:', mappedActivities);
+
+      if (mappedError) {
+        console.error('Error fetching mapped activities:', mappedError);
+        throw mappedError;
+      }
 
       if (!mappedActivities || mappedActivities.length === 0) {
         setMyActivities([]);
@@ -122,17 +133,25 @@ export default function MyActivitiesPage() {
         return;
       }
 
-      // Get creator profiles
+      // Get unique creator IDs
       const creatorIds = [...new Set(mappedActivities
         .map(activity => activity.activities?.created_by)
         .filter(Boolean))];
 
+      console.log('Creator IDs:', creatorIds);
+
+      // Fetch creator profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, name')
         .in('user_id', creatorIds);
 
-      if (profilesError) throw profilesError;
+      console.log('Creator profiles:', profilesData);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
 
       // Create a map of user_id to profile name
       const profileMap = new Map(
