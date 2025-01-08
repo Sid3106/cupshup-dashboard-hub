@@ -17,7 +17,7 @@ export interface Activity {
 
 export interface ActivityWithCreator extends Activity {
   creator_name: string;
-  creator?: {
+  profiles?: {
     name: string | null;
   };
 }

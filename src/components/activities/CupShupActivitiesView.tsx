@@ -41,7 +41,10 @@ export function CupShupActivitiesView() {
       
       let query = supabase
         .from('activities')
-        .select('*, profiles!activities_created_by_fkey(name)')
+        .select(`
+          *,
+          profiles(name)
+        `)
         .order('start_date', { ascending: false });
 
       if (selectedCity && selectedCity !== "_all") {
