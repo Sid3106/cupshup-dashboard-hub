@@ -4,6 +4,7 @@ import { Sidebar, SidebarContent } from "@/components/ui/sidebar";
 import { DashboardNavLink } from "./navigation/DashboardNavLink";
 import { VendorNavigation } from "./navigation/VendorNavigation";
 import { CupShupNavigation } from "./navigation/CupShupNavigation";
+import { ClientNavigation } from "./navigation/ClientNavigation";
 
 export function DashboardSidebar() {
   const { data: userProfile } = useQuery({
@@ -19,20 +20,22 @@ export function DashboardSidebar() {
         .single();
 
       if (error) throw error;
-      console.log('User profile:', data); // Add logging to debug role
+      console.log('User profile:', data);
       return data;
     },
   });
 
   const isVendor = userProfile?.role === 'Vendor';
   const isCupShup = userProfile?.role === 'CupShup';
+  const isClient = userProfile?.role === 'Client';
 
   return (
     <Sidebar>
       <SidebarContent className="flex flex-col gap-4 bg-primary text-white p-4">
         <DashboardNavLink />
-        {isVendor && <VendorNavigation />}
         {isCupShup && <CupShupNavigation />}
+        {isVendor && <VendorNavigation />}
+        {isClient && <ClientNavigation />}
       </SidebarContent>
     </Sidebar>
   );

@@ -1,5 +1,13 @@
 import { NavLink } from "react-router-dom";
-import { Users, Building2, UserSquare2, CalendarDays, ListChecks, TestTubes } from "lucide-react";
+import { 
+  Users, 
+  Building2, 
+  UserSquare2, 
+  CalendarDays, 
+  ListChecks,
+  TestTubes,
+  ClipboardCheck
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function CupShupNavigation() {
@@ -76,6 +84,18 @@ export function CupShupNavigation() {
       >
         <TestTubes className="h-4 w-4" />
         <span>Test</span>
+      </NavLink>
+      <NavLink
+        to="/dashboard/tasks"
+        className={({ isActive }) =>
+          cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 font-montserrat",
+            isActive && "bg-white/10"
+          )
+        }
+      >
+        <ClipboardCheck className="h-4 w-4" />
+        <span>Tasks</span>
       </NavLink>
     </>
   );
