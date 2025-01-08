@@ -4,15 +4,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface TaskFormValues {
   customer_name: string;
   customer_number: string;
   sales_order: number;
   products_sold: string;
+  order_image: FileList;
 }
 
 interface TaskFormDialogProps {
@@ -23,6 +25,7 @@ interface TaskFormDialogProps {
 
 export function TaskFormDialog({ isOpen, onClose, activityId }: TaskFormDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { toast } = useToast();
   const form = useForm<TaskFormValues>({
     defaultValues: {
@@ -36,6 +39,39 @@ export function TaskFormDialog({ isOpen, onClose, activityId }: TaskFormDialogPr
   const onSubmit = async (values: TaskFormValues) => {
     try {
       setIsLoading(true);
+      setUploadError(null);
+
+      if (!values.order_image?.[0]) {
+        setUploadError("Order image is required");
+        return;
+      }
+
+      // Upload image to Supabase Storage
+      const file = values.order_image[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('order_images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL of the uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from('order_images')
+        .getPublicUrl(fileName);
+
+      // Process image with Edge Function
+      const { data: processedData, error: processError } = await supabase.functions
+        .invoke('process-order-image', {
+          body: { imageUrl: publicUrl }
+        });
+
+      if (processError) throw processError;
 
       // Get the activity details to populate task mapping
       const { data: activity } = await supabase
@@ -72,6 +108,8 @@ export function TaskFormDialog({ isOpen, onClose, activityId }: TaskFormDialogPr
           customer_number: values.customer_number,
           sales_order: values.sales_order,
           products_sold: values.products_sold,
+          order_image: publicUrl,
+          order_id: processedData?.orderId || null,
         });
 
       if (taskError) throw taskError;
@@ -171,6 +209,36 @@ export function TaskFormDialog({ isOpen, onClose, activityId }: TaskFormDialogPr
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="order_image"
+              rules={{ required: "Order image is required" }}
+              render={({ field: { onChange, value, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Order Image</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          onChange(e.target.files);
+                        }}
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {uploadError && (
+              <Alert variant="destructive">
+                <AlertDescription>{uploadError}</AlertDescription>
+              </Alert>
+            )}
 
             <div className="flex justify-end gap-4 pt-4">
               <Button type="button" variant="outline" onClick={onClose}>
