@@ -20,16 +20,31 @@ export default function AuthPage() {
   const [view, setView] = useState<'sign_in' | 'update_password'>('sign_in');
 
   useEffect(() => {
-    // Clear any existing sessions on mount
-    const clearSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    const initializeAuth = async () => {
+      try {
+        // Clear any stale sessions
         await supabase.auth.signOut();
+        
+        // Reset error state
+        setAuthError(null);
+        
+        // Check URL parameters for error messages
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const error = hashParams.get('error') || searchParams.get('error');
+        const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
+        
+        if (error === 'access_denied' && errorDescription) {
+          setAuthError(decodeURIComponent(errorDescription));
+          setView('update_password');
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setAuthError('Failed to initialize authentication');
       }
     };
-    
-    clearSession();
-  }, []);
+
+    initializeAuth();
+  }, [searchParams]);
 
   const handleError = (error: AuthError) => {
     console.error('Auth Error:', error);
@@ -63,45 +78,45 @@ export default function AuthPage() {
   };
 
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const error = hashParams.get('error') || searchParams.get('error');
-    const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
-    
-    if (error === 'access_denied' && errorDescription) {
-      setAuthError(decodeURIComponent(errorDescription));
-      setView('update_password');
-      return;
-    }
-
     const handleAuthStateChange = async (event: string, session: any) => {
       console.log("Auth state changed:", event, session);
       
       if (event === "SIGNED_IN" && session) {
         setIsLoading(true);
         try {
+          // Verify session is valid
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError) throw userError;
+          if (!user) throw new Error('No user found');
+
+          // Get user profile
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('user_id', session.user.id)
+            .eq('user_id', user.id)
             .single();
 
           if (profileError) throw profileError;
 
-          if (profileData && !profile) {
+          if (profile) {
+            navigate('/dashboard');
+          } else {
+            // Handle missing profile
             const { error: createProfileError } = await supabase
               .from('profiles')
               .insert([{
-                user_id: session.user.id,
+                user_id: user.id,
                 ...profileData
               }]);
 
             if (createProfileError) throw createProfileError;
+            navigate('/dashboard');
           }
-
-          navigate('/dashboard');
         } catch (error: any) {
           console.error('Error during sign in:', error);
           handleError(error);
+          // Sign out on error to prevent invalid session state
+          await supabase.auth.signOut();
         } finally {
           setIsLoading(false);
         }
@@ -112,35 +127,13 @@ export default function AuthPage() {
       }
     };
 
-    try {
-      const encodedData = searchParams.get('profile');
-      if (encodedData) {
-        const decodedData = JSON.parse(atob(encodedData));
-        console.log("Decoded profile data:", decodedData);
-        setProfileData(decodedData);
-      }
-    } catch (error) {
-      console.error('Error parsing profile data:', error);
-    }
-
+    // Initialize auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
-
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Session check error:', error);
-        handleError(error);
-        return;
-      }
-      if (session) {
-        handleAuthStateChange("SIGNED_IN", session);
-      }
-    });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, profileData, searchParams, toast]);
+  }, [navigate, profileData, toast]);
 
   if (isLoading) {
     return (

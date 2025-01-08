@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { SessionContextProvider } from "@supabase/auth-helpers-react";
 import { toast } from "sonner";
 import DashboardPage from "./pages/dashboard/Index";
+import AuthPage from "./pages/auth/Index";
+import AuthCallbackPage from "./pages/auth/callback";
 import UsersPage from "./pages/dashboard/users/Index";
 import UserDetailPage from "./pages/dashboard/users/[id]";
 import VendorsPage from "./pages/dashboard/vendors/Index";
@@ -18,7 +20,6 @@ import MyActivitiesPage from "./pages/dashboard/my-activities/Index";
 import MappedActivitiesPage from "./pages/dashboard/mapped-activities/Index";
 import ProfilePage from "./pages/dashboard/profile/Index";
 import SettingsPage from "./pages/dashboard/settings/Index";
-import AuthPage from "./pages/auth/Index";
 import TestPage from "./pages/dashboard/test/Index";
 import ActivityDetailPage from "./pages/dashboard/my-activities/[id]";
 
@@ -107,6 +108,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route
               path="/"
               element={
