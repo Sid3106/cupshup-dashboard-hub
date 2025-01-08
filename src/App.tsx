@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionContextProvider } from "@supabase/auth-helpers-react";
@@ -26,6 +26,7 @@ import ActivityDetailPage from "./pages/dashboard/my-activities/[id]";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -39,21 +40,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        if (!session) {
-          setIsAuthenticated(false);
-          return;
-        }
-
-        // Verify the session is still valid
-        const { error: userError } = await supabase.auth.getUser();
-        if (userError) {
-          console.error('User verification error:', userError);
-          setIsAuthenticated(false);
-          toast.error("Session expired. Please sign in again.");
-          return;
-        }
-
-        setIsAuthenticated(true);
+        setIsAuthenticated(!!session);
       } catch (error) {
         console.error('Session check error:', error);
         setIsAuthenticated(false);
@@ -65,21 +52,40 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
-      
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        setIsAuthenticated(false);
-      } else if (event === 'SIGNED_IN') {
-        setIsAuthenticated(true);
-      }
-      
-      // Handle session errors
-      if (event === 'TOKEN_REFRESHED' && !session) {
-        toast.error("Session expired. Please sign in again.");
-        setIsAuthenticated(false);
-      }
-      
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00A979]"></div>
+    </div>;
+  }
+
+  return isAuthenticated ? children : <Navigate to="/auth" replace />;
+};
+
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+      setIsLoading(false);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
       setIsLoading(false);
     });
 
@@ -94,7 +100,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     </div>;
   }
 
-  return isAuthenticated ? <>{children}</> : <Navigate to="/auth" replace />;
+  return !isAuthenticated ? children : <Navigate to="/dashboard" replace />;
 };
 
 const queryClient = new QueryClient();
@@ -107,7 +113,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth" element={
+              <PublicRoute>
+                <AuthPage />
+              </PublicRoute>
+            } />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route
               path="/"
