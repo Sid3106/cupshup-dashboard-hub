@@ -47,3 +47,18 @@ export interface PaginationProps {
   totalPages: number;
   onPageChange: (page: number) => void;
 }
+
+export interface ActivityDetail {
+  id: string;
+  brand: string;
+  city: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+  activity_description: string | null;
+  creator_name?: string;
+  mapping?: {
+    created_at: string;
+    message: string | null;
+  };
+}
