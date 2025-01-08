@@ -15,7 +15,7 @@ export function VendorNavigation() {
         }
       >
         <CalendarDays className="h-4 w-4" />
-        <span>Activities</span>
+        <span>All Activities</span>
       </NavLink>
       <NavLink
         to="/dashboard/my-activities"

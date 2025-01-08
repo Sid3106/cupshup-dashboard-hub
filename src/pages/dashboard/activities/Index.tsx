@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useToast } from "@/hooks/use-toast";
+import { CupShupActivitiesView } from "@/components/activities/CupShupActivitiesView";
+import { Button } from "@/components/ui/button";
+import { CreateActivityDialog } from "@/components/activities/CreateActivityDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { Plus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -10,135 +13,88 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { format } from "date-fns";
 
-interface ActivityWithCreator {
-  id: string;
-  brand: string;
-  city: string;
-  location: string;
-  start_date: string;
-  creator_name: string;
-}
-
 export default function ActivitiesPage() {
-  const [activities, setActivities] = useState<ActivityWithCreator[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const { toast } = useToast();
-  const itemsPerPage = 10;
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [activities, setActivities] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchActivities();
-  }, [currentPage]);
+    checkUserRole();
+    if (userRole === 'Vendor') {
+      fetchActivities();
+    }
+  }, [userRole]);
 
-  const fetchActivities = async () => {
+  const checkUserRole = async () => {
     try {
-      setIsLoading(true);
-      
-      // First, get the total count of activities
-      const { count } = await supabase
-        .from('activities')
-        .select('*', { count: 'exact', head: true });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
 
-      if (count !== null) {
-        setTotalPages(Math.ceil(count / itemsPerPage));
-      }
-
-      // Fetch activities with pagination
-      const { data: activitiesData, error: activitiesError } = await supabase
-        .from('activities')
-        .select('id, brand, city, location, start_date, created_by')
-        .order('start_date', { ascending: false })
-        .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
-
-      if (activitiesError) throw activitiesError;
-
-      if (!activitiesData) {
-        setActivities([]);
-        return;
-      }
-
-      // Get unique creator IDs
-      const creatorIds = [...new Set(activitiesData.map(activity => activity.created_by))];
-
-      // Fetch profiles for creators
-      const { data: profilesData, error: profilesError } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('user_id, name')
-        .in('user_id', creatorIds);
+        .select('role')
+        .eq('user_id', session.user.id)
+        .single();
 
-      if (profilesError) throw profilesError;
-
-      // Create a map of user_id to profile name
-      const profileMap = new Map(
-        profilesData?.map(profile => [profile.user_id, profile.name]) || []
-      );
-
-      // Transform the data
-      const transformedData: ActivityWithCreator[] = activitiesData.map(activity => ({
-        id: activity.id,
-        brand: activity.brand,
-        city: activity.city,
-        location: activity.location,
-        start_date: activity.start_date,
-        creator_name: profileMap.get(activity.created_by) || 'Unknown'
-      }));
-
-      setActivities(transformedData);
+      setUserRole(profile?.role || null);
     } catch (error) {
-      console.error('Error fetching activities:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch activities. Please try again later.",
-        variant: "destructive",
-      });
+      console.error('Error checking user role:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const renderPagination = () => {
-    const pages = [];
-    for (let i = 1; i <= totalPages; i++) {
-      pages.push(
-        <PaginationItem key={i}>
-          <PaginationLink
-            onClick={() => setCurrentPage(i)}
-            isActive={currentPage === i}
-          >
-            {i}
-          </PaginationLink>
-        </PaginationItem>
-      );
+  const fetchActivities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('activities')
+        .select(`
+          *,
+          profiles!activities_created_by_fkey (
+            name
+          )
+        `)
+        .order('start_date', { ascending: false });
+
+      if (error) throw error;
+      setActivities(data);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
     }
-    return pages;
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00A979]"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Activities</h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">
+            {userRole === 'Vendor' ? 'All Activities' : 'Activities'}
+          </h1>
+          {userRole === 'CupShup' && (
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Activity
+            </Button>
+          )}
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-8">Loading activities...</div>
-        ) : activities.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No activities found.
-          </div>
+        {userRole === 'CupShup' ? (
+          <CupShupActivitiesView />
         ) : (
-          <div className="space-y-4">
+          <div className="border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -158,31 +114,23 @@ export default function ActivitiesPage() {
                     <TableCell>
                       {format(new Date(activity.start_date), 'PPP')}
                     </TableCell>
-                    <TableCell>{activity.creator_name}</TableCell>
+                    <TableCell>{activity.profiles?.name || 'Unknown'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                  />
-                </PaginationItem>
-                {renderPagination()}
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
           </div>
         )}
+
+        <CreateActivityDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSuccess={() => {
+            if (userRole === 'CupShup') {
+              window.location.reload();
+            }
+          }}
+        />
       </div>
     </DashboardLayout>
   );
