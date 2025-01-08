@@ -20,8 +20,12 @@ export default function AuthPage() {
 
   useEffect(() => {
     const checkExistingSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log("Checking existing session...");
+      const { data: { session }, error } = await supabase.auth.getSession();
+      console.log("Session check result:", { session, error });
+      
       if (session) {
+        console.log("Valid session found, navigating to dashboard");
         navigate('/dashboard');
       }
     };
@@ -32,14 +36,17 @@ export default function AuthPage() {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        console.log("Initializing auth...");
         setAuthError(null);
         
-        // Check URL parameters for error messages
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const error = hashParams.get('error') || searchParams.get('error');
         const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
         
+        console.log("URL parameters:", { error, errorDescription });
+        
         if (error === 'access_denied' && errorDescription) {
+          console.log("Access denied error detected");
           setAuthError(decodeURIComponent(errorDescription));
           setView('update_password');
         }
@@ -59,24 +66,28 @@ export default function AuthPage() {
       if (event === "SIGNED_IN" && session) {
         setIsLoading(true);
         try {
-          // Verify session is valid
+          console.log("Verifying user session...");
           const { data: { user }, error: userError } = await supabase.auth.getUser();
+          console.log("User verification result:", { user, userError });
+          
           if (userError) throw userError;
           if (!user) throw new Error('No user found');
 
-          // Get user profile
+          console.log("Checking user profile...");
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', user.id)
             .single();
+          
+          console.log("Profile check result:", { profile, profileError });
 
           if (profileError && profileError.code !== 'PGRST116') {
             throw profileError;
           }
 
           if (!profile) {
-            // Create profile if it doesn't exist
+            console.log("Creating new profile...");
             const { error: createProfileError } = await supabase
               .from('profiles')
               .insert([{
@@ -86,9 +97,11 @@ export default function AuthPage() {
                 name: user.email?.split('@')[0] || 'User'
               }]);
 
+            console.log("Profile creation result:", { createProfileError });
             if (createProfileError) throw createProfileError;
           }
           
+          console.log("Authentication successful, navigating to dashboard");
           navigate('/dashboard');
         } catch (error: any) {
           console.error('Error during sign in:', error);
@@ -106,9 +119,11 @@ export default function AuthPage() {
       }
     };
 
+    console.log("Setting up auth state change listener");
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     return () => {
+      console.log("Cleaning up auth state change listener");
       subscription.unsubscribe();
     };
   }, [navigate, toast]);
