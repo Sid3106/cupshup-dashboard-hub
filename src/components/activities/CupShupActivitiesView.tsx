@@ -41,7 +41,7 @@ export function CupShupActivitiesView() {
         .from('activities')
         .select(`
           *,
-          profiles!activities_created_by_fkey (
+          profiles:created_by (
             name
           )
         `)
