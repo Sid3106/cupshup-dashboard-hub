@@ -40,9 +40,19 @@ export default function AuthPage() {
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       <AuthSidebar view={view} />
-      <div className="p-4 lg:p-8 h-full flex items-center">
+      <div className="p-4 lg:p-8 h-full flex items-center bg-[#00A979]">
         <Card className="mx-auto w-full max-w-md">
-          <AuthHeader view={view} />
+          <div className="flex flex-col items-center justify-center space-y-2 p-6">
+            <img 
+              src="https://zdslyhsaebzabstxskgd.supabase.co/storage/v1/object/sign/cupshup_images/CupShupLogo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJjdXBzaHVwX2ltYWdlcy9DdXBTaHVwTG9nby5wbmciLCJpYXQiOjE3MzYzODU2NjIsImV4cCI6MTc2NzkyMTY2Mn0.Ui1vKAwvRcJ-qPbPC7U74ywOwiRUMZo4j8-eARVr6rs&t=2025-01-09T01%3A21%3A02.723Z" 
+              alt="CupShup Logo" 
+              className="h-12 w-auto mb-4"
+            />
+            <h2 className="text-2xl font-semibold text-center">Sign In</h2>
+            <p className="font-roboto text-[#00A979] text-lg font-medium text-center">
+              Let's Brew Innovation!
+            </p>
+          </div>
           <CardContent>
             {authError && (
               <Alert variant="destructive" className="mb-4">
@@ -60,6 +70,11 @@ export default function AuthPage() {
                       brandAccent: '#008c64'
                     }
                   }
+                },
+                className: {
+                  container: 'flex flex-col items-center',
+                  button: 'w-full',
+                  input: 'w-full'
                 }
               }}
               providers={[]}
