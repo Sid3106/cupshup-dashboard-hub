@@ -40,20 +40,20 @@ export default function AuthPage() {
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0 bg-[#00A979]">
       <AuthSidebar view={view} />
-      <div className="p-3 lg:p-4 h-full flex items-center justify-center">
+      <div className="p-4 lg:p-6 h-full flex items-center justify-center">
         <Card className="mx-auto w-full max-w-sm">
-          <div className="flex flex-col items-center pt-2">
+          <div className="flex flex-col items-center pt-4">
             <img 
               src="https://zdslyhsaebzabstxskgd.supabase.co/storage/v1/object/sign/cupshup_images/CupShupLogo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJjdXBzaHVwX2ltYWdlcy9DdXBTaHVwTG9nby5wbmciLCJpYXQiOjE3MzYzODU2NjIsImV4cCI6MTc2NzkyMTY2Mn0.Ui1vKAwvRcJ-qPbPC7U74ywOwiRUMZo4j8-eARVr6rs&t=2025-01-09T01%3A21%3A02.723Z" 
               alt="CupShup Logo" 
-              className="h-10 w-auto mb-1"
+              className="h-12 w-auto mb-2"
             />
-            <p className="font-roboto text-[#00A979] text-lg font-bold mb-1">Let's Brew Innovation!</p>
+            <p className="font-roboto text-[#00A979] text-lg font-bold mb-2">Let's Brew Innovation!</p>
           </div>
           <AuthHeader view={view} />
-          <CardContent className="pb-2">
+          <CardContent className="pb-3">
             {authError && (
-              <Alert variant="destructive" className="mb-2">
+              <Alert variant="destructive" className="mb-3">
                 <AlertDescription>{authError}</AlertDescription>
               </Alert>
             )}
@@ -72,22 +72,21 @@ export default function AuthPage() {
                 style: {
                   input: {
                     borderWidth: '2px',
-                    marginBottom: '6px'
+                    marginBottom: '8px'
                   },
                   container: {
                     textAlign: 'left'
                   },
                   button: {
-                    marginTop: '6px',
-                    marginBottom: '6px'
+                    marginTop: '8px',
+                    marginBottom: '8px'
                   },
                   anchor: {
                     display: 'none'
                   },
                   label: {
                     textAlign: 'left',
-                    justifyContent: 'flex-start',
-                    marginBottom: '2px'
+                    justifyContent: 'flex-start'
                   }
                 }
               }}
@@ -99,7 +98,7 @@ export default function AuthPage() {
             />
             <button
               onClick={() => setView('update_password')}
-              className="text-sm text-[#00A979] hover:underline w-full text-center"
+              className="text-sm text-[#00A979] hover:underline w-full text-center mt-1"
             >
               Forgot your password?
             </button>
