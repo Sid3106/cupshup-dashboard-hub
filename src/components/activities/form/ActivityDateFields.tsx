@@ -35,7 +35,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
     const currentValue = field.value || new Date();
     const newDate = new Date(date);
     
-    // Preserve the current time when changing the date
+    // Preserve the current time
     newDate.setHours(currentValue.getHours());
     newDate.setMinutes(currentValue.getMinutes());
     
@@ -87,6 +87,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                     mode="single"
                     selected={field.value}
                     onSelect={(date) => handleDateChange(date, field)}
+                    disabled={false}
                     initialFocus
                   />
                 </PopoverContent>
@@ -139,6 +140,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                     mode="single"
                     selected={field.value}
                     onSelect={(date) => handleDateChange(date, field)}
+                    disabled={false}
                     initialFocus
                   />
                 </PopoverContent>
