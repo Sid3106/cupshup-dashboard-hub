@@ -21,15 +21,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseAdmin = createClient(
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
     )
 
     const inviteData: InviteRequest = await req.json()
@@ -40,19 +34,19 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Check for existing user
-    const { data: existingUser, error: userError } = await supabaseAdmin
+    // Check for existing user in profiles table
+    const { data: existingProfile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('user_id')
       .eq('email', inviteData.email)
       .maybeSingle()
     
-    if (userError) {
-      console.error('Error checking existing user:', userError)
-      throw new Error(`Failed to check existing user: ${userError.message}`)
+    if (profileError) {
+      console.error('Error checking existing profile:', profileError)
+      throw new Error(`Failed to check existing profile: ${profileError.message}`)
     }
 
-    if (existingUser) {
+    if (existingProfile) {
       return new Response(
         JSON.stringify({ 
           error: "This email is already associated with an account"
@@ -75,14 +69,11 @@ Deno.serve(async (req) => {
 
     console.log('Inviting user with metadata:', userMetadata)
 
-    // Generate signup link
-    const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+    // Generate signup link using the correct admin method
+    const { data, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
       inviteData.email,
       {
-        data: userMetadata,
-        options: {
-          data: userMetadata
-        }
+        data: userMetadata
       }
     )
 
@@ -91,39 +82,33 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to invite user: ${inviteError.message}`)
     }
 
-    if (!data?.user?.identities?.[0]?.identity_data?.invite_link) {
-      throw new Error('No invite link generated')
-    }
-
-    // Send invitation email
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
-    
-    const emailResponse = await resend.emails.send({
-      from: 'CupShup <no-reply@cupshup.co.in>',
-      to: inviteData.email,
-      subject: 'Welcome to CupShup',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #00A979;">Welcome to CupShup!</h2>
-          <p>Hello ${inviteData.name},</p>
-          <p>You've been invited to join CupShup as a ${inviteData.role}. Click the button below to accept your invitation and set up your account:</p>
-          <div style="text-align: center; margin: 24px 0;">
-            <a href="${data.user.identities[0].identity_data.invite_link}" 
-               style="background-color: #00A979; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-              Accept Invitation
-            </a>
+    if (!data?.user?.email_confirmed_at) {
+      console.log('Invite created, sending welcome email')
+      
+      // Send invitation email
+      const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
+      
+      const emailResponse = await resend.emails.send({
+        from: 'CupShup <no-reply@cupshup.co.in>',
+        to: inviteData.email,
+        subject: 'Welcome to CupShup',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #00A979;">Welcome to CupShup!</h2>
+            <p>Hello ${inviteData.name},</p>
+            <p>You've been invited to join CupShup as a ${inviteData.role}. Please check your email for a confirmation link to set up your account.</p>
+            <p>If you have any questions, please don't hesitate to reach out to our support team.</p>
+            <p>Best regards,<br>The CupShup Team</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">If you didn't expect this invitation, please ignore this email.</p>
           </div>
-          <p>If you have any questions, please don't hesitate to reach out to our support team.</p>
-          <p>Best regards,<br>The CupShup Team</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="color: #666; font-size: 12px;">If you didn't expect this invitation, please ignore this email.</p>
-        </div>
-      `
-    })
+        `
+      })
 
-    if (emailResponse.error) {
-      console.error('Error sending email:', emailResponse.error)
-      throw new Error(`Failed to send invitation email: ${emailResponse.error.message}`)
+      if (emailResponse.error) {
+        console.error('Error sending email:', emailResponse.error)
+        throw new Error(`Failed to send invitation email: ${emailResponse.error.message}`)
+      }
     }
 
     console.log('Invitation sent successfully')
