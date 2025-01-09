@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { extractOrderId } from "./order-processor.ts";
 import { ImageAnnotatorClient } from "https://esm.sh/@google-cloud/vision@4.0.2";
 
 const corsHeaders = {
@@ -31,26 +31,27 @@ serve(async (req) => {
     // Fetch image data
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
-      const error = `Failed to fetch image: ${imageResponse.statusText}`;
-      console.error(error);
-      throw new Error(error);
+      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
     }
 
-    const imageBuffer = new Uint8Array(await imageResponse.arrayBuffer());
-    console.log('Image fetched successfully, size:', imageBuffer.length);
+    const imageBuffer = await imageResponse.arrayBuffer();
+    console.log('Image fetched successfully');
 
     // Initialize Vision client with credentials
     const credentials = JSON.parse(Deno.env.get('GOOGLE_CLOUD_CREDENTIALS') || '{}');
     const visionClient = new ImageAnnotatorClient({ credentials });
-    console.log('Vision client initialized successfully');
 
     // Detect text in image
-    const [result] = await visionClient.textDetection(imageBuffer);
+    const [result] = await visionClient.textDetection({
+      image: {
+        content: new Uint8Array(imageBuffer)
+      }
+    });
+
     const detectedText = result.fullTextAnnotation?.text || '';
-    console.log('Text detection completed. Detected text:', detectedText);
-    
+    console.log('Detected text:', detectedText);
+
     if (!detectedText) {
-      console.log('No text detected in the image');
       return new Response(
         JSON.stringify({ 
           error: 'No text detected in the image',
@@ -60,32 +61,15 @@ serve(async (req) => {
       );
     }
 
-    // Extract order ID using a simple pattern matching
-    // Assuming order IDs are in the format "ORDER-XXXXX" or similar
-    const orderIdMatch = detectedText.match(/ORDER[-\s]?(\d+)/i) || 
-                        detectedText.match(/\b(OR|O)[-\s]?(\d+)\b/i);
-    
-    const orderId = orderIdMatch ? orderIdMatch[0] : null;
+    // Extract order ID from the detected text
+    const orderId = extractOrderId(detectedText);
     console.log('Extracted order ID:', orderId);
-    
-    if (!orderId) {
-      console.log('No order ID pattern found in the detected text');
-      return new Response(
-        JSON.stringify({ 
-          error: 'No order ID pattern found in the detected text',
-          detectedText: detectedText,
-          details: 'Could not find a pattern matching an order ID in the detected text'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 422 }
-      );
-    }
 
-    // Return success response
     return new Response(
       JSON.stringify({ 
+        success: true,
         orderId,
-        detectedText,
-        success: true
+        detectedText 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -95,13 +79,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Failed to process order image',
-        details: error.message,
-        stack: error.stack
+        details: error.message
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

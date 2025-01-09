@@ -8,6 +8,7 @@ export function extractOrderId(text: string): string | null {
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match) {
+      // Return the full match (e.g., "ORDER-12345")
       return match[0];
     }
   }
