@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     
     if (usersError) {
       console.error('Error checking existing users:', usersError)
-      throw usersError
+      throw new Error(`Failed to check existing users: ${usersError.message}`)
     }
 
     const existingUser = users.find(u => u.email === inviteData.email)
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     if (existingUser) {
       return new Response(
         JSON.stringify({ 
-          error: "This email is already associated with an account. The user already has access to the platform."
+          error: "This email is already associated with an account"
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -68,13 +68,22 @@ Deno.serve(async (req) => {
           role: inviteData.role,
           city: inviteData.city,
           brand_name: inviteData.brand_name
+        },
+        options: {
+          data: {
+            name: inviteData.name,
+            phone_number: inviteData.phone_number,
+            role: inviteData.role,
+            city: inviteData.city,
+            brand_name: inviteData.brand_name
+          }
         }
       }
     )
 
     if (inviteError) {
       console.error('Error inviting user:', inviteError)
-      throw inviteError
+      throw new Error(`Failed to invite user: ${inviteError.message}`)
     }
 
     if (!user?.identities?.[0]?.identity_data?.invite_link) {
@@ -84,7 +93,7 @@ Deno.serve(async (req) => {
     // Send the invitation email using Resend
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
     
-    await resend.emails.send({
+    const emailResponse = await resend.emails.send({
       from: 'CupShup <no-reply@cupshup.co.in>',
       to: inviteData.email,
       subject: 'Welcome to CupShup',
@@ -101,6 +110,11 @@ Deno.serve(async (req) => {
       `
     })
 
+    if (emailResponse.error) {
+      console.error('Error sending email:', emailResponse.error)
+      throw new Error(`Failed to send invitation email: ${emailResponse.error.message}`)
+    }
+
     return new Response(
       JSON.stringify({ message: 'Invitation sent successfully' }),
       {
@@ -109,9 +123,12 @@ Deno.serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in send-invite function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred',
+        details: error.toString()
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
