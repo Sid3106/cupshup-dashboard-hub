@@ -46,12 +46,18 @@ export type FormValues = z.infer<typeof formSchema>;
 
 export function CreateActivityForm({ onSuccess }: CreateActivityFormProps) {
   const { toast } = useToast();
+  const now = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       brand: "",
       city: "",
       location: "",
+      start_date: now,
+      end_date: tomorrow,
       latitude: null,
       longitude: null,
       contract_value: null,

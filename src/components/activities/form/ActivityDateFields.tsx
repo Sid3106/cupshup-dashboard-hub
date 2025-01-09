@@ -16,6 +16,7 @@ interface ActivityDateFieldsProps {
 
 export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
   useEffect(() => {
+    // Initialize dates only if they haven't been set
     if (!form.getValues("start_date")) {
       const now = new Date();
       now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15);
@@ -32,14 +33,11 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
   const handleDateChange = (date: Date | undefined, field: any) => {
     if (!date) return;
     
-    const currentValue = field.value || new Date();
-    const newDate = new Date(date);
+    const currentTime = field.value ? field.value : new Date();
+    date.setHours(currentTime.getHours());
+    date.setMinutes(currentTime.getMinutes());
     
-    // Preserve the current time
-    newDate.setHours(currentValue.getHours());
-    newDate.setMinutes(currentValue.getMinutes());
-    
-    field.onChange(newDate);
+    field.onChange(date);
   };
 
   const handleTimeChange = (timeStr: string, field: any) => {
