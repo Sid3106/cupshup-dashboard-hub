@@ -33,11 +33,15 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
   const handleDateChange = (date: Date | undefined, field: any) => {
     if (!date) return;
     
-    const currentTime = field.value ? field.value : new Date();
-    date.setHours(currentTime.getHours());
-    date.setMinutes(currentTime.getMinutes());
+    // Create a new date object to avoid mutations
+    const newDate = new Date(date);
+    const currentTime = field.value || new Date();
     
-    field.onChange(date);
+    // Set time on the new date object
+    newDate.setHours(currentTime.getHours());
+    newDate.setMinutes(currentTime.getMinutes());
+    
+    field.onChange(newDate);
   };
 
   const handleTimeChange = (timeStr: string, field: any) => {
@@ -45,6 +49,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
 
     const [hours, minutes] = timeStr.split(':').map(Number);
     const currentDate = field.value || new Date();
+    // Create a new date object to avoid mutations
     const newDate = new Date(currentDate);
     newDate.setHours(hours);
     newDate.setMinutes(minutes);
