@@ -21,14 +21,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         auth: {
           autoRefreshToken: false,
-          persistSession: false,
-        },
+          persistSession: false
+        }
       }
     )
 
@@ -41,9 +41,13 @@ Deno.serve(async (req) => {
     }
 
     // Check for existing user
-    const { data: existingUser, error: userError } = await supabaseClient.auth.admin.getUserByEmail(inviteData.email)
+    const { data: existingUser, error: userError } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id')
+      .eq('email', inviteData.email)
+      .maybeSingle()
     
-    if (userError && userError.message !== 'User not found') {
+    if (userError) {
       console.error('Error checking existing user:', userError)
       throw new Error(`Failed to check existing user: ${userError.message}`)
     }
@@ -71,8 +75,8 @@ Deno.serve(async (req) => {
 
     console.log('Inviting user with metadata:', userMetadata)
 
-    // Generate signup link with metadata
-    const { data, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
+    // Generate signup link
+    const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       inviteData.email,
       {
         data: userMetadata,
