@@ -40,7 +40,29 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Check for existing user
+    // Check for existing user in auth.users
+    const { data: existingUser, error: existingUserError } = await supabaseAdmin
+      .auth.admin.listUsers()
+
+    if (existingUserError) {
+      console.error('Error checking existing users:', existingUserError)
+      throw new Error(`Failed to check existing users: ${existingUserError.message}`)
+    }
+
+    const userExists = existingUser.users.some(user => user.email === inviteData.email)
+    if (userExists) {
+      return new Response(
+        JSON.stringify({ 
+          error: "This email is already associated with an account"
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      )
+    }
+
+    // Check for existing profile
     const { data: existingProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('user_id')
@@ -64,6 +86,9 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Generate a random password for initial user creation
+    const tempPassword = Math.random().toString(36).slice(-8)
+
     // Structure user metadata
     const userMetadata = {
       name: inviteData.name,
@@ -75,23 +100,24 @@ Deno.serve(async (req) => {
 
     console.log('Creating user with metadata:', userMetadata)
 
-    // First create the user
+    // Create the user with email confirmation disabled
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: inviteData.email,
-      email_confirm: false,
+      password: tempPassword,
+      email_confirm: true,
       user_metadata: userMetadata
     })
 
     if (createError) {
       console.error('Error creating user:', createError)
-      throw new Error(`Failed to create user: ${createError.message}`)
+      throw createError
     }
 
     console.log('User created successfully:', userData)
 
-    // Then generate the invitation link
+    // Generate the invitation link
     const { data: inviteData2, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'invite',
+      type: 'magiclink',
       email: inviteData.email,
     })
 
