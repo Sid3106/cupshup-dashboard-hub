@@ -5,7 +5,7 @@ interface AuthHeaderProps {
 }
 
 export const AuthHeader = ({ view }: AuthHeaderProps) => (
-  <CardHeader className="space-y-1 text-center py-4">
+  <CardHeader className="space-y-1 text-left py-3">
     <CardTitle className="text-2xl">
       {view === 'update_password' ? 'Reset Password' : 'Sign in'}
     </CardTitle>
