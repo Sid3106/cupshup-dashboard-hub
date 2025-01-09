@@ -15,7 +15,6 @@ interface ActivityDateFieldsProps {
 }
 
 export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
-  // Initialize default dates if not set
   useEffect(() => {
     if (!form.getValues("start_date")) {
       const now = new Date();
@@ -30,23 +29,28 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
     }
   }, [form]);
 
-  const handleDateSelect = (date: Date | undefined, field: any) => {
-    if (date) {
-      const currentTime = field.value || new Date();
-      date.setHours(currentTime.getHours());
-      date.setMinutes(currentTime.getMinutes());
-      field.onChange(date);
-    }
+  const handleDateChange = (date: Date | undefined, field: any) => {
+    if (!date) return;
+
+    const currentValue = field.value || new Date();
+    const newDate = new Date(date);
+    
+    // Preserve the current time when changing the date
+    newDate.setHours(currentValue.getHours());
+    newDate.setMinutes(currentValue.getMinutes());
+    
+    field.onChange(newDate);
   };
 
   const handleTimeChange = (timeStr: string, field: any) => {
     if (!timeStr) return;
-    
+
     const [hours, minutes] = timeStr.split(':').map(Number);
     const currentDate = field.value || new Date();
     const newDate = new Date(currentDate);
     newDate.setHours(hours);
     newDate.setMinutes(minutes);
+    
     field.onChange(newDate);
   };
 
@@ -58,43 +62,44 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
         render={({ field }) => (
           <FormItem className="flex flex-col">
             <FormLabel>Start Date <span className="text-red-500">*</span></FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
-                    )}
-                  >
-                    {field.value ? (
-                      format(field.value, "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={(date) => handleDateSelect(date, field)}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  initialFocus
-                />
-                <div className="p-3 border-t">
-                  <Input
-                    type="time"
-                    onChange={(e) => handleTimeChange(e.target.value, field)}
-                    value={field.value ? format(field.value, "HH:mm") : ""}
-                    className="w-full"
+            <div className="flex flex-col gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={(date) => handleDateChange(date, field)}
+                    initialFocus
                   />
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+              <FormControl>
+                <Input
+                  type="time"
+                  onChange={(e) => handleTimeChange(e.target.value, field)}
+                  value={field.value ? format(field.value, "HH:mm") : ""}
+                  className="w-full"
+                />
+              </FormControl>
+            </div>
             <FormMessage />
             <div className="text-sm text-muted-foreground mt-1">
               {field.value && format(field.value, "h:mm a")}
@@ -109,46 +114,44 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
         render={({ field }) => (
           <FormItem className="flex flex-col">
             <FormLabel>End Date <span className="text-red-500">*</span></FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
-                    )}
-                  >
-                    {field.value ? (
-                      format(field.value, "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={(date) => handleDateSelect(date, field)}
-                  disabled={(date) => {
-                    const startDate = form.getValues("start_date");
-                    return startDate && date < startDate;
-                  }}
-                  initialFocus
-                />
-                <div className="p-3 border-t">
-                  <Input
-                    type="time"
-                    onChange={(e) => handleTimeChange(e.target.value, field)}
-                    value={field.value ? format(field.value, "HH:mm") : ""}
-                    className="w-full"
+            <div className="flex flex-col gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={(date) => handleDateChange(date, field)}
+                    initialFocus
                   />
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+              <FormControl>
+                <Input
+                  type="time"
+                  onChange={(e) => handleTimeChange(e.target.value, field)}
+                  value={field.value ? format(field.value, "HH:mm") : ""}
+                  className="w-full"
+                />
+              </FormControl>
+            </div>
             <FormMessage />
             <div className="text-sm text-muted-foreground mt-1">
               {field.value && format(field.value, "h:mm a")}
