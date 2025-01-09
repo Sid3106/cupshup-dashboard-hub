@@ -42,16 +42,16 @@ export default function AuthPage() {
       <AuthSidebar view={view} />
       <div className="p-4 lg:p-8 h-full flex items-center justify-center">
         <Card className="mx-auto w-full max-w-md">
-          <div className="flex flex-col items-center pt-8">
+          <div className="flex flex-col items-center pt-6">
             <img 
               src="https://zdslyhsaebzabstxskgd.supabase.co/storage/v1/object/sign/cupshup_images/CupShupLogo.png?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJjdXBzaHVwX2ltYWdlcy9DdXBTaHVwTG9nby5wbmciLCJpYXQiOjE3MzYzODU2NjIsImV4cCI6MTc2NzkyMTY2Mn0.Ui1vKAwvRcJ-qPbPC7U74ywOwiRUMZo4j8-eARVr6rs&t=2025-01-09T01%3A21%3A02.723Z" 
               alt="CupShup Logo" 
-              className="h-16 w-auto mb-4"
+              className="h-14 w-auto mb-3"
             />
-            <p className="font-roboto text-[#00A979] text-lg mb-6">Let's Brew Innovation!</p>
+            <p className="font-roboto text-[#00A979] text-lg font-bold mb-4">Let's Brew Innovation!</p>
           </div>
           <AuthHeader view={view} />
-          <CardContent>
+          <CardContent className="pb-4">
             {authError && (
               <Alert variant="destructive" className="mb-4">
                 <AlertDescription>{authError}</AlertDescription>
@@ -67,6 +67,21 @@ export default function AuthPage() {
                       brand: '#00A979',
                       brandAccent: '#008c64'
                     }
+                  }
+                },
+                style: {
+                  input: {
+                    borderWidth: '2px',
+                    marginBottom: '12px'
+                  },
+                  container: {
+                    textAlign: 'center'
+                  },
+                  button: {
+                    marginTop: '8px'
+                  },
+                  anchor: {
+                    display: 'none' // Hides the "Sign up" link
                   }
                 }
               }}
