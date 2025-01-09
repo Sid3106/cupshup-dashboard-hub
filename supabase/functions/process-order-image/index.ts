@@ -1,6 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { extractOrderId } from "./order-processor.ts";
-import { ImageAnnotatorClient } from "https://esm.sh/@google-cloud/vision@4.0.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,27 +26,43 @@ serve(async (req) => {
 
     console.log('Processing image URL:', imageUrl);
 
-    // Fetch image data
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+    // Get credentials from environment
+    const credentials = JSON.parse(Deno.env.get('GOOGLE_CLOUD_CREDENTIALS') || '{}');
+    
+    // Prepare the request to Google Cloud Vision API
+    const visionRequest = {
+      requests: [{
+        image: {
+          source: {
+            imageUri: imageUrl
+          }
+        },
+        features: [{
+          type: 'TEXT_DETECTION'
+        }]
+      }]
+    };
+
+    // Call Google Cloud Vision API directly
+    const response = await fetch(
+      `https://vision.googleapis.com/v1/images:annotate?key=${credentials.api_key}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(visionRequest)
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Vision API error:', error);
+      throw new Error(`Vision API error: ${error}`);
     }
 
-    const imageBuffer = await imageResponse.arrayBuffer();
-    console.log('Image fetched successfully');
-
-    // Initialize Vision client with credentials
-    const credentials = JSON.parse(Deno.env.get('GOOGLE_CLOUD_CREDENTIALS') || '{}');
-    const visionClient = new ImageAnnotatorClient({ credentials });
-
-    // Detect text in image
-    const [result] = await visionClient.textDetection({
-      image: {
-        content: new Uint8Array(imageBuffer)
-      }
-    });
-
-    const detectedText = result.fullTextAnnotation?.text || '';
+    const result = await response.json();
+    const detectedText = result.responses[0]?.fullTextAnnotation?.text || '';
     console.log('Detected text:', detectedText);
 
     if (!detectedText) {
@@ -61,8 +75,10 @@ serve(async (req) => {
       );
     }
 
-    // Extract order ID from the detected text
-    const orderId = extractOrderId(detectedText);
+    // Extract order ID using simple pattern matching
+    // You can modify this based on your order ID format
+    const orderIdMatch = detectedText.match(/Order[:\s]+([A-Z0-9]+)/i);
+    const orderId = orderIdMatch ? orderIdMatch[1] : null;
     console.log('Extracted order ID:', orderId);
 
     return new Response(
