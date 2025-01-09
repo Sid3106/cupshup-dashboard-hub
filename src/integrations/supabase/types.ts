@@ -165,6 +165,7 @@ export type Database = {
         Row: {
           city: Database["public"]["Enums"]["indian_city"] | null
           created_at: string
+          email_id: string
           id: string
           name: string | null
           phone_number: string
@@ -176,6 +177,7 @@ export type Database = {
         Insert: {
           city?: Database["public"]["Enums"]["indian_city"] | null
           created_at?: string
+          email_id: string
           id?: string
           name?: string | null
           phone_number: string
@@ -187,6 +189,7 @@ export type Database = {
         Update: {
           city?: Database["public"]["Enums"]["indian_city"] | null
           created_at?: string
+          email_id?: string
           id?: string
           name?: string | null
           phone_number?: string
