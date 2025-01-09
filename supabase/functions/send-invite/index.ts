@@ -12,9 +12,11 @@ interface InviteRequest {
   phone_number: string
   role: string
   city: string
+  brand_name?: string
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -60,18 +62,23 @@ Deno.serve(async (req) => {
     const { data: { user }, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
       inviteData.email,
       {
-        redirectTo: `${Deno.env.get('SUPABASE_URL')}/auth/callback?profile=${encodeURIComponent(JSON.stringify({
+        data: {
           name: inviteData.name,
           phone_number: inviteData.phone_number,
           role: inviteData.role,
-          city: inviteData.city
-        }))}`
+          city: inviteData.city,
+          brand_name: inviteData.brand_name
+        }
       }
     )
 
     if (inviteError) {
       console.error('Error inviting user:', inviteError)
       throw inviteError
+    }
+
+    if (!user?.identities?.[0]?.identity_data?.invite_link) {
+      throw new Error('No invite link generated')
     }
 
     // Send the invitation email using Resend
@@ -85,7 +92,7 @@ Deno.serve(async (req) => {
         <h2>Welcome to CupShup!</h2>
         <p>Hello ${inviteData.name},</p>
         <p>You've been invited to join CupShup. Click the button below to accept your invitation and set up your account:</p>
-        <a href="${user?.identities?.[0]?.identity_data?.invite_link}" 
+        <a href="${user.identities[0].identity_data.invite_link}" 
            style="background-color: #00A979; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;">
           Accept the Invite
         </a>
