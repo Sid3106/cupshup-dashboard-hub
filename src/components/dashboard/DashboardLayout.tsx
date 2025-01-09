@@ -1,4 +1,4 @@
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardHeader } from "./DashboardHeader";
 
@@ -13,7 +13,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <DashboardSidebar />
         <div className="flex-1">
           <DashboardHeader />
-          <main className="p-4 lg:p-8">
+          <main className="p-8">
+            <div className="lg:hidden mb-4">
+              <SidebarTrigger />
+            </div>
             <div className="max-w-6xl mx-auto">
               {children}
             </div>
