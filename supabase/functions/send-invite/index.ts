@@ -34,19 +34,19 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Check for existing user in auth.users and profiles tables using a join
-    const { data: existingUser, error: userError } = await supabaseClient
+    // Check for existing user using email_id column
+    const { data: existingProfile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('user_id, auth.users!inner(email)')
-      .eq('auth.users.email', inviteData.email)
+      .select('user_id')
+      .eq('email_id', inviteData.email)
       .maybeSingle()
     
-    if (userError) {
-      console.error('Error checking existing user:', userError)
-      throw new Error(`Failed to check existing user: ${userError.message}`)
+    if (profileError) {
+      console.error('Error checking existing profile:', profileError)
+      throw new Error(`Failed to check existing profile: ${profileError.message}`)
     }
 
-    if (existingUser) {
+    if (existingProfile) {
       return new Response(
         JSON.stringify({ 
           error: "This email is already associated with an account"
