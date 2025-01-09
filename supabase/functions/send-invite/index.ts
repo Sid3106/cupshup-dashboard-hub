@@ -21,9 +21,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // Initialize Supabase client with service role key for admin operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     )
 
     const inviteData: InviteRequest = await req.json()
@@ -35,7 +42,7 @@ Deno.serve(async (req) => {
     }
 
     // Check for existing user using email_id column
-    const { data: existingProfile, error: profileError } = await supabaseClient
+    const { data: existingProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('user_id')
       .eq('email_id', inviteData.email)
@@ -69,8 +76,8 @@ Deno.serve(async (req) => {
 
     console.log('Inviting user with metadata:', userMetadata)
 
-    // Generate signup link
-    const { data, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
+    // Generate signup link using admin client
+    const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       inviteData.email,
       {
         data: userMetadata
