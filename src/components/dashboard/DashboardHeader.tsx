@@ -1,4 +1,4 @@
-import { Bell, Menu } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,12 +8,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function DashboardHeader() {
   const navigate = useNavigate();
@@ -59,15 +58,6 @@ export function DashboardHeader() {
   return (
     <header className="border-b bg-white">
       <div className="flex h-16 items-center px-4 gap-4">
-        <SidebarTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="lg:hidden text-primary hover:bg-primary/5"
-          >
-            <Menu className="h-6 w-6" />
-          </Button>
-        </SidebarTrigger>
         <div className="ml-auto flex items-center gap-4">
           <Button variant="ghost" size="icon" className="text-gray-600 hover:text-primary hover:bg-primary/5">
             <Bell className="h-5 w-5" />
@@ -76,15 +66,21 @@ export function DashboardHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar>
-                  <AvatarFallback className="bg-primary text-white">{userInitials}</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-white">
+                    {userInitials}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>Profile</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
+                Settings
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                 Log out
