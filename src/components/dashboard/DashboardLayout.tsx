@@ -15,7 +15,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <DashboardHeader />
           <main className="p-8">
             <div className="lg:hidden mb-4">
-              <SidebarTrigger />
+              <SidebarTrigger className="w-12 h-12 bg-primary hover:bg-primary/90 rounded-md flex items-center justify-center [&_svg]:text-white [&_svg]:w-6 [&_svg]:h-6" />
             </div>
             <div className="max-w-6xl mx-auto">
               {children}
