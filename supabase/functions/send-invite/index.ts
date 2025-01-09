@@ -41,15 +41,13 @@ Deno.serve(async (req) => {
     }
 
     // Check for existing user
-    const { data: { users }, error: usersError } = await supabaseClient.auth.admin.listUsers()
+    const { data: existingUser, error: userError } = await supabaseClient.auth.admin.getUserByEmail(inviteData.email)
     
-    if (usersError) {
-      console.error('Error checking existing users:', usersError)
-      throw new Error(`Failed to check existing users: ${usersError.message}`)
+    if (userError && userError.message !== 'User not found') {
+      console.error('Error checking existing user:', userError)
+      throw new Error(`Failed to check existing user: ${userError.message}`)
     }
 
-    const existingUser = users.find(u => u.email === inviteData.email)
-    
     if (existingUser) {
       return new Response(
         JSON.stringify({ 
@@ -74,7 +72,7 @@ Deno.serve(async (req) => {
     console.log('Inviting user with metadata:', userMetadata)
 
     // Generate signup link with metadata
-    const { data: { user }, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
+    const { data, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
       inviteData.email,
       {
         data: userMetadata,
@@ -89,7 +87,7 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to invite user: ${inviteError.message}`)
     }
 
-    if (!user?.identities?.[0]?.identity_data?.invite_link) {
+    if (!data?.user?.identities?.[0]?.identity_data?.invite_link) {
       throw new Error('No invite link generated')
     }
 
@@ -101,15 +99,21 @@ Deno.serve(async (req) => {
       to: inviteData.email,
       subject: 'Welcome to CupShup',
       html: `
-        <h2>Welcome to CupShup!</h2>
-        <p>Hello ${inviteData.name},</p>
-        <p>You've been invited to join CupShup. Click the button below to accept your invitation and set up your account:</p>
-        <a href="${user.identities[0].identity_data.invite_link}" 
-           style="background-color: #00A979; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;">
-          Accept the Invite
-        </a>
-        <p>If you have any questions, please don't hesitate to reach out to our support team.</p>
-        <p>Best regards,<br>The CupShup Team</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #00A979;">Welcome to CupShup!</h2>
+          <p>Hello ${inviteData.name},</p>
+          <p>You've been invited to join CupShup as a ${inviteData.role}. Click the button below to accept your invitation and set up your account:</p>
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${data.user.identities[0].identity_data.invite_link}" 
+               style="background-color: #00A979; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              Accept Invitation
+            </a>
+          </div>
+          <p>If you have any questions, please don't hesitate to reach out to our support team.</p>
+          <p>Best regards,<br>The CupShup Team</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">If you didn't expect this invitation, please ignore this email.</p>
+        </div>
       `
     })
 
@@ -118,8 +122,15 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to send invitation email: ${emailResponse.error.message}`)
     }
 
+    console.log('Invitation sent successfully')
     return new Response(
-      JSON.stringify({ message: 'Invitation sent successfully' }),
+      JSON.stringify({ 
+        message: 'Invitation sent successfully',
+        data: {
+          email: inviteData.email,
+          role: inviteData.role
+        }
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
