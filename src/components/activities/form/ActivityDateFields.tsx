@@ -31,7 +31,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
 
   const handleDateChange = (date: Date | undefined, field: any) => {
     if (!date) return;
-
+    
     const currentValue = field.value || new Date();
     const newDate = new Date(date);
     
