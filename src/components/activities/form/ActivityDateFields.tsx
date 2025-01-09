@@ -87,7 +87,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                     mode="single"
                     selected={field.value}
                     onSelect={(date) => handleDateChange(date, field)}
-                    disabled={false}
+                    defaultMonth={field.value}
                     initialFocus
                   />
                 </PopoverContent>
@@ -140,7 +140,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                     mode="single"
                     selected={field.value}
                     onSelect={(date) => handleDateChange(date, field)}
-                    disabled={false}
+                    defaultMonth={field.value}
                     initialFocus
                   />
                 </PopoverContent>
