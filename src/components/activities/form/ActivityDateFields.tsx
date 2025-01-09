@@ -18,22 +18,24 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
   // Initialize default dates if not set
   useEffect(() => {
     if (!form.getValues("start_date")) {
-      form.setValue("start_date", new Date());
+      const now = new Date();
+      now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15);
+      form.setValue("start_date", now);
     }
     if (!form.getValues("end_date")) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setMinutes(Math.ceil(tomorrow.getMinutes() / 15) * 15);
       form.setValue("end_date", tomorrow);
     }
   }, [form]);
 
   const handleDateSelect = (date: Date | undefined, field: any) => {
     if (date) {
-      const currentValue = field.value || new Date();
-      const newDate = new Date(date);
-      newDate.setHours(currentValue.getHours() || new Date().getHours());
-      newDate.setMinutes(currentValue.getMinutes() || new Date().getMinutes());
-      field.onChange(newDate);
+      const currentTime = field.value || new Date();
+      date.setHours(currentTime.getHours());
+      date.setMinutes(currentTime.getMinutes());
+      field.onChange(date);
     }
   };
 
@@ -41,8 +43,8 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
     if (!timeStr) return;
     
     const [hours, minutes] = timeStr.split(':').map(Number);
-    const date = field.value || new Date();
-    const newDate = new Date(date);
+    const currentDate = field.value || new Date();
+    const newDate = new Date(currentDate);
     newDate.setHours(hours);
     newDate.setMinutes(minutes);
     field.onChange(newDate);
@@ -53,7 +55,6 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
       <FormField
         control={form.control}
         name="start_date"
-        rules={{ required: "Start date is required" }}
         render={({ field }) => (
           <FormItem className="flex flex-col">
             <FormLabel>Start Date <span className="text-red-500">*</span></FormLabel>
@@ -81,6 +82,7 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                   mode="single"
                   selected={field.value}
                   onSelect={(date) => handleDateSelect(date, field)}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                   initialFocus
                 />
                 <div className="p-3 border-t">
@@ -104,7 +106,6 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
       <FormField
         control={form.control}
         name="end_date"
-        rules={{ required: "End date is required" }}
         render={({ field }) => (
           <FormItem className="flex flex-col">
             <FormLabel>End Date <span className="text-red-500">*</span></FormLabel>
@@ -132,6 +133,10 @@ export function ActivityDateFields({ form }: ActivityDateFieldsProps) {
                   mode="single"
                   selected={field.value}
                   onSelect={(date) => handleDateSelect(date, field)}
+                  disabled={(date) => {
+                    const startDate = form.getValues("start_date");
+                    return startDate && date < startDate;
+                  }}
                   initialFocus
                 />
                 <div className="p-3 border-t">
