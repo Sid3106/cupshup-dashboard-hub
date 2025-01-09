@@ -21,7 +21,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Initialize Supabase client with service role key for admin operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -41,7 +40,7 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Check for existing user using email_id column
+    // Check for existing user
     const { data: existingProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('user_id')
@@ -74,48 +73,61 @@ Deno.serve(async (req) => {
       ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
     }
 
-    console.log('Inviting user with metadata:', userMetadata)
+    console.log('Creating user with metadata:', userMetadata)
 
-    // Generate signup link using admin client
-    const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      inviteData.email,
-      {
-        data: userMetadata
-      }
-    )
+    // First create the user
+    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: inviteData.email,
+      email_confirm: false,
+      user_metadata: userMetadata
+    })
 
-    if (inviteError) {
-      console.error('Error inviting user:', inviteError)
-      throw new Error(`Failed to invite user: ${inviteError.message}`)
+    if (createError) {
+      console.error('Error creating user:', createError)
+      throw new Error(`Failed to create user: ${createError.message}`)
     }
 
-    if (!data?.user?.email_confirmed_at) {
-      console.log('Invite created, sending welcome email')
-      
-      // Send invitation email
-      const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
-      
-      const emailResponse = await resend.emails.send({
-        from: 'CupShup <no-reply@cupshup.co.in>',
-        to: inviteData.email,
-        subject: 'Welcome to CupShup',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #00A979;">Welcome to CupShup!</h2>
-            <p>Hello ${inviteData.name},</p>
-            <p>You've been invited to join CupShup as a ${inviteData.role}. Please check your email for a confirmation link to set up your account.</p>
-            <p>If you have any questions, please don't hesitate to reach out to our support team.</p>
-            <p>Best regards,<br>The CupShup Team</p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="color: #666; font-size: 12px;">If you didn't expect this invitation, please ignore this email.</p>
-          </div>
-        `
-      })
+    console.log('User created successfully:', userData)
 
-      if (emailResponse.error) {
-        console.error('Error sending email:', emailResponse.error)
-        throw new Error(`Failed to send invitation email: ${emailResponse.error.message}`)
-      }
+    // Then generate the invitation link
+    const { data: inviteData2, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'invite',
+      email: inviteData.email,
+    })
+
+    if (inviteError) {
+      console.error('Error generating invite link:', inviteError)
+      throw new Error(`Failed to generate invite link: ${inviteError.message}`)
+    }
+
+    console.log('Invite link generated successfully')
+
+    // Send invitation email
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
+    
+    const emailResponse = await resend.emails.send({
+      from: 'CupShup <no-reply@cupshup.co.in>',
+      to: inviteData.email,
+      subject: 'Welcome to CupShup',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #00A979;">Welcome to CupShup!</h2>
+          <p>Hello ${inviteData.name},</p>
+          <p>You've been invited to join CupShup as a ${inviteData.role}. Click the link below to set up your account:</p>
+          <p><a href="${inviteData2.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all;">${inviteData2.properties?.action_link}</p>
+          <p>This invitation link will expire in 24 hours.</p>
+          <p>Best regards,<br>The CupShup Team</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">If you didn't expect this invitation, please ignore this email.</p>
+        </div>
+      `
+    })
+
+    if (emailResponse.error) {
+      console.error('Error sending email:', emailResponse.error)
+      throw new Error(`Failed to send invitation email: ${emailResponse.error.message}`)
     }
 
     console.log('Invitation sent successfully')
