@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createVisionClient, detectText } from "./vision-client.ts";
-import { extractOrderId } from "./order-processor.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { ImageAnnotatorClient } from "https://esm.sh/@google-cloud/vision@4.0.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,11 +40,13 @@ serve(async (req) => {
     console.log('Image fetched successfully, size:', imageBuffer.length);
 
     // Initialize Vision client with credentials
-    const credentials = await createVisionClient();
+    const credentials = JSON.parse(Deno.env.get('GOOGLE_CLOUD_CREDENTIALS') || '{}');
+    const visionClient = new ImageAnnotatorClient({ credentials });
     console.log('Vision client initialized successfully');
 
-    // Detect text in image using REST API
-    const detectedText = await detectText(credentials, imageBuffer);
+    // Detect text in image
+    const [result] = await visionClient.textDetection(imageBuffer);
+    const detectedText = result.fullTextAnnotation?.text || '';
     console.log('Text detection completed. Detected text:', detectedText);
     
     if (!detectedText) {
@@ -58,8 +60,12 @@ serve(async (req) => {
       );
     }
 
-    // Extract order ID
-    const orderId = extractOrderId(detectedText);
+    // Extract order ID using a simple pattern matching
+    // Assuming order IDs are in the format "ORDER-XXXXX" or similar
+    const orderIdMatch = detectedText.match(/ORDER[-\s]?(\d+)/i) || 
+                        detectedText.match(/\b(OR|O)[-\s]?(\d+)\b/i);
+    
+    const orderId = orderIdMatch ? orderIdMatch[0] : null;
     console.log('Extracted order ID:', orderId);
     
     if (!orderId) {
