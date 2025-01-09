@@ -16,7 +16,6 @@ interface InviteRequest {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -36,7 +35,12 @@ Deno.serve(async (req) => {
     const inviteData: InviteRequest = await req.json()
     console.log('Received invite request:', inviteData)
 
-    // First, check if the user already exists in auth.users
+    // Validate required fields
+    if (!inviteData.email || !inviteData.name || !inviteData.phone_number || !inviteData.role || !inviteData.city) {
+      throw new Error('Missing required fields')
+    }
+
+    // Check for existing user
     const { data: { users }, error: usersError } = await supabaseClient.auth.admin.listUsers()
     
     if (usersError) {
@@ -58,25 +62,24 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Generate a signup link with the profile data embedded in the redirect URL
+    // Structure user metadata
+    const userMetadata = {
+      name: inviteData.name,
+      phone_number: inviteData.phone_number,
+      role: inviteData.role,
+      city: inviteData.city,
+      ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
+    }
+
+    console.log('Inviting user with metadata:', userMetadata)
+
+    // Generate signup link with metadata
     const { data: { user }, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
       inviteData.email,
       {
-        data: {
-          name: inviteData.name,
-          phone_number: inviteData.phone_number,
-          role: inviteData.role,
-          city: inviteData.city,
-          brand_name: inviteData.brand_name
-        },
+        data: userMetadata,
         options: {
-          data: {
-            name: inviteData.name,
-            phone_number: inviteData.phone_number,
-            role: inviteData.role,
-            city: inviteData.city,
-            brand_name: inviteData.brand_name
-          }
+          data: userMetadata
         }
       }
     )
@@ -90,7 +93,7 @@ Deno.serve(async (req) => {
       throw new Error('No invite link generated')
     }
 
-    // Send the invitation email using Resend
+    // Send invitation email
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
     
     const emailResponse = await resend.emails.send({
