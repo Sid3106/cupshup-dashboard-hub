@@ -6,7 +6,7 @@ import { ActivityCard } from "./ActivityCard";
 import { CreateActivityDialog } from "./CreateActivityDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { ActivityWithCreator } from "@/types/activities";
-import { CITIES } from "@/constants/formOptions";
+import { CITIES, BRANDS } from "@/constants/formOptions";
 import { toast } from "sonner";
 
 export function CupShupActivitiesView() {
@@ -14,35 +14,11 @@ export function CupShupActivitiesView() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedBrand, setSelectedBrand] = useState<string>("");
-  const [brands, setBrands] = useState<string[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
-    fetchBrands();
     fetchActivities();
   }, [selectedCity, selectedBrand]);
-
-  const fetchBrands = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('brand_name')
-        .order('brand_name');
-
-      if (error) {
-        console.error('Error fetching brands:', error);
-        throw error;
-      }
-
-      if (data) {
-        const uniqueBrands = [...new Set(data.map(client => client.brand_name))];
-        setBrands(uniqueBrands);
-      }
-    } catch (error) {
-      console.error('Error fetching brands:', error);
-      toast.error("Failed to fetch brands");
-    }
-  };
 
   const fetchActivities = async () => {
     try {
@@ -124,7 +100,7 @@ export function CupShupActivitiesView() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="_all">All Brands</SelectItem>
-                {brands.map((brand) => (
+                {Object.values(BRANDS).map((brand) => (
                   <SelectItem key={brand} value={brand}>
                     {brand}
                   </SelectItem>
