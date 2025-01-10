@@ -18,12 +18,26 @@ const initialFormData: InviteFormData = {
   city: '',
 };
 
+const COOLDOWN_PERIOD = 20000; // 20 seconds in milliseconds
+let lastInviteTime = 0;
+
 export const useInviteForm = (onSuccess: () => void) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<InviteFormData>(initialFormData);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if enough time has passed since the last invite
+    const now = Date.now();
+    const timeSinceLastInvite = now - lastInviteTime;
+    
+    if (timeSinceLastInvite < COOLDOWN_PERIOD) {
+      const remainingSeconds = Math.ceil((COOLDOWN_PERIOD - timeSinceLastInvite) / 1000);
+      toast.error(`Please wait ${remainingSeconds} seconds before sending another invitation`);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -43,17 +57,28 @@ export const useInviteForm = (onSuccess: () => void) => {
       });
 
       if (error) {
+        // Check specifically for rate limit errors
+        if (error.message?.includes('rate_limit')) {
+          toast.error("Please wait a few seconds before trying again");
+          return;
+        }
         console.error('Supabase OTP Error:', error);
         throw error;
       }
 
       console.log('OTP Response:', data);
+      lastInviteTime = Date.now(); // Update the last invite time
       toast.success("Invitation sent successfully. The user will receive a magic link via email.");
       onSuccess();
       setFormData(initialFormData);
     } catch (error) {
       console.error('Invitation Error:', error);
-      toast.error(error.message || "Failed to send invitation");
+      // Handle rate limit errors that might come through the catch block
+      if (error.message?.includes('rate_limit')) {
+        toast.error("Please wait a few seconds before trying again");
+      } else {
+        toast.error(error.message || "Failed to send invitation");
+      }
     } finally {
       setIsLoading(false);
     }
