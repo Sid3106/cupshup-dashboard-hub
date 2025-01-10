@@ -24,8 +24,9 @@ Deno.serve(async (req) => {
     // Validate environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
 
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!supabaseUrl || !serviceRoleKey || !resendApiKey) {
       console.error('Missing required environment variables')
       throw new Error('Server configuration error')
     }
@@ -90,6 +91,43 @@ Deno.serve(async (req) => {
 
     console.log('User created successfully:', userData.user.id)
 
+    // Insert into profiles table
+    console.log('Creating profile...')
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        user_id: userData.user.id,
+        name: inviteData.name,
+        role: inviteData.role,
+        phone_number: inviteData.phone_number,
+        city: inviteData.city,
+        email_id: inviteData.email
+      })
+
+    if (profileError) {
+      console.error('Error creating profile:', profileError)
+      throw profileError
+    }
+
+    // If role is Vendor, insert into vendors table
+    if (inviteData.role === 'Vendor') {
+      console.log('Creating vendor record...')
+      const { error: vendorError } = await supabaseAdmin
+        .from('vendors')
+        .insert({
+          vendor_name: inviteData.name,
+          vendor_email: inviteData.email,
+          vendor_phone: inviteData.phone_number,
+          city: inviteData.city,
+          user_id: userData.user.id
+        })
+
+      if (vendorError) {
+        console.error('Error creating vendor:', vendorError)
+        throw vendorError
+      }
+    }
+
     // Generate sign-in link
     console.log('Generating sign-in link...')
     const { data: signInData, error: signInError } = await supabaseAdmin.auth.admin.generateLink({
@@ -103,7 +141,7 @@ Deno.serve(async (req) => {
     }
 
     // Send invitation email
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
+    const resend = new Resend(resendApiKey)
     
     console.log('Sending invitation email...')
     const emailResponse = await resend.emails.send({
@@ -114,11 +152,11 @@ Deno.serve(async (req) => {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #00A979;">Welcome to CupShup!</h2>
           <p>Hello ${inviteData.name},</p>
-          <p>You've been invited to join CupShup as a ${inviteData.role}. Click the link below to set up your account:</p>
-          <p><a href="${signInData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
+          <p>You've been invited to join CupShup as a ${inviteData.role}. Click the link below to sign in to your account:</p>
+          <p><a href="${signInData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign In</a></p>
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
           <p style="word-break: break-all;">${signInData.properties?.action_link}</p>
-          <p>This invitation link will expire in 24 hours.</p>
+          <p>This link will expire in 24 hours.</p>
           <p>Best regards,<br>The CupShup Team</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           <p style="color: #666; font-size: 12px;">If you didn't expect this invitation, please ignore this email.</p>
