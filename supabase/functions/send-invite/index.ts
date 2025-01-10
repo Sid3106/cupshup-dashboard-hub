@@ -42,37 +42,33 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // First, generate sign-in link which will create the user
-    console.log('Generating sign-in link...')
-    const { data: signInData, error: signInError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
+    // First create the user with a random password
+    console.log('Creating user...')
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email: inviteData.email,
-      options: {
-        data: {
-          name: inviteData.name,
-          phone_number: inviteData.phone_number,
-          role: inviteData.role,
-          city: inviteData.city,
-          ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
-        }
+      email_confirm: true,
+      user_metadata: {
+        name: inviteData.name,
+        phone_number: inviteData.phone_number,
+        role: inviteData.role,
+        city: inviteData.city,
+        ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
       }
     })
 
-    if (signInError) {
-      console.error('Error generating sign-in link:', signInError)
-      throw signInError
+    if (userError) {
+      console.error('Error creating user:', userError)
+      throw userError
     }
 
-    // Get the user ID from the sign-in data
-    const userId = signInData.user.id
-    console.log('User ID generated:', userId)
+    console.log('User created successfully:', userData.user.id)
 
-    // Insert into profiles table with the user ID
+    // Insert into profiles table
     console.log('Creating profile...')
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
-        user_id: userId,
+        user_id: userData.user.id,
         name: inviteData.name,
         role: inviteData.role,
         phone_number: inviteData.phone_number,
@@ -95,13 +91,25 @@ Deno.serve(async (req) => {
           vendor_email: inviteData.email,
           vendor_phone: inviteData.phone_number,
           city: inviteData.city,
-          user_id: userId
+          user_id: userData.user.id
         })
 
       if (vendorError) {
         console.error('Error creating vendor:', vendorError)
         throw vendorError
       }
+    }
+
+    // Generate password reset link (which will act as our magic link)
+    console.log('Generating magic link...')
+    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: inviteData.email,
+    })
+
+    if (resetError) {
+      console.error('Error generating magic link:', resetError)
+      throw resetError
     }
 
     // Send invitation email
@@ -117,9 +125,9 @@ Deno.serve(async (req) => {
           <h2 style="color: #00A979;">Welcome to CupShup!</h2>
           <p>Hello ${inviteData.name},</p>
           <p>You've been invited to join CupShup as a ${inviteData.role}. Click the link below to sign in to your account:</p>
-          <p><a href="${signInData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign In</a></p>
+          <p><a href="${resetData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign In</a></p>
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p style="word-break: break-all;">${signInData.properties?.action_link}</p>
+          <p style="word-break: break-all;">${resetData.properties?.action_link}</p>
           <p>This link will expire in 24 hours.</p>
           <p>Best regards,<br>The CupShup Team</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
