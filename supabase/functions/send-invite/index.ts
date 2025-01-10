@@ -32,12 +32,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('Initializing Supabase admin client...')
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      }
-    })
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
     const inviteData: InviteRequest = await req.json()
     console.log('Processing invite request for:', inviteData.email)
@@ -47,56 +42,11 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Check for existing user
-    console.log('Checking for existing user...')
-    const { data: existingUsers, error: existingUserError } = await supabaseAdmin.auth.admin.listUsers()
-    
-    if (existingUserError) {
-      console.error('Error checking existing users:', existingUserError)
-      throw new Error(`Failed to check existing users: ${existingUserError.message}`)
-    }
-
-    const userExists = existingUsers.users.some(user => user.email === inviteData.email)
-    if (userExists) {
-      console.log('User already exists:', inviteData.email)
-      return new Response(
-        JSON.stringify({ 
-          error: "This email is already associated with an account"
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
-      )
-    }
-
-    // Create user with service role key
-    console.log('Creating new user...')
-    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: inviteData.email,
-      email_confirm: true,
-      user_metadata: {
-        name: inviteData.name,
-        phone_number: inviteData.phone_number,
-        role: inviteData.role,
-        city: inviteData.city,
-        ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
-      }
-    })
-
-    if (createError) {
-      console.error('Error creating user:', createError)
-      throw createError
-    }
-
-    console.log('User created successfully:', userData.user.id)
-
-    // Insert into profiles table
+    // First, insert into profiles table
     console.log('Creating profile...')
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
-        user_id: userData.user.id,
         name: inviteData.name,
         role: inviteData.role,
         phone_number: inviteData.phone_number,
@@ -118,8 +68,7 @@ Deno.serve(async (req) => {
           vendor_name: inviteData.name,
           vendor_email: inviteData.email,
           vendor_phone: inviteData.phone_number,
-          city: inviteData.city,
-          user_id: userData.user.id
+          city: inviteData.city
         })
 
       if (vendorError) {
