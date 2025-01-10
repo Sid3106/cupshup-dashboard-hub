@@ -18,15 +18,12 @@ export default function AuthCallbackPage() {
         const { user } = session;
         const metadata = user.user_metadata;
 
-        // Create profile record first
+        // Create profile record
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             user_id: user.id,
-            name: metadata.name,
             role: metadata.role,
-            phone_number: metadata.phone_number,
-            city: metadata.city,
             email_id: user.email,
           });
 
@@ -37,10 +34,7 @@ export default function AuthCallbackPage() {
           const { error: vendorError } = await supabase
             .from('vendors')
             .insert({
-              vendor_name: metadata.name,
               vendor_email: user.email,
-              vendor_phone: metadata.phone_number,
-              city: metadata.city,
               user_id: user.id,
             });
 
