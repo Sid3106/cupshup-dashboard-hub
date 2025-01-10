@@ -18,24 +18,30 @@ export default function AuthCallbackPage() {
         const { user } = session;
         const metadata = user.user_metadata;
 
-        // Create profile record
+        // Create profile record with all required fields
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             user_id: user.id,
             role: metadata.role,
             email_id: user.email,
+            phone_number: "Not provided", // Required field with default value
+            name: user.email.split('@')[0], // Default name from email
+            city: null // Optional field
           });
 
         if (profileError) throw profileError;
 
-        // If role is Vendor, create vendor record
+        // If role is Vendor, create vendor record with all required fields
         if (metadata.role === 'Vendor') {
           const { error: vendorError } = await supabase
             .from('vendors')
             .insert({
               vendor_email: user.email,
+              vendor_name: user.email.split('@')[0], // Default name from email
+              vendor_phone: "Not provided", // Required field with default value
               user_id: user.id,
+              city: null // Optional field
             });
 
           if (vendorError) throw vendorError;
