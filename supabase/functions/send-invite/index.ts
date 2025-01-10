@@ -21,22 +21,25 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('Starting invite process...')
-    
-    // Initialize Supabase admin client with service role key
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        }
+    // Validate environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Missing required environment variables')
+      throw new Error('Server configuration error')
+    }
+
+    console.log('Initializing Supabase admin client...')
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       }
-    )
+    })
 
     const inviteData: InviteRequest = await req.json()
-    console.log('Received invite request:', inviteData)
+    console.log('Processing invite request for:', inviteData.email)
 
     // Validate required fields
     if (!inviteData.email || !inviteData.name || !inviteData.phone_number || !inviteData.role || !inviteData.city) {
@@ -66,28 +69,38 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Generate magic link
-    console.log('Generating magic link...')
-    const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
+    // Create user with service role key
+    console.log('Creating new user...')
+    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: inviteData.email,
-      options: {
-        data: {
-          name: inviteData.name,
-          phone_number: inviteData.phone_number,
-          role: inviteData.role,
-          city: inviteData.city,
-          ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
-        }
+      email_confirm: true,
+      user_metadata: {
+        name: inviteData.name,
+        phone_number: inviteData.phone_number,
+        role: inviteData.role,
+        city: inviteData.city,
+        ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
       }
     })
 
-    if (magicLinkError) {
-      console.error('Error generating magic link:', magicLinkError)
-      throw new Error(`Failed to generate magic link: ${magicLinkError.message}`)
+    if (createError) {
+      console.error('Error creating user:', createError)
+      throw createError
     }
 
-    console.log('Magic link generated successfully')
+    console.log('User created successfully:', userData.user.id)
+
+    // Generate sign-in link
+    console.log('Generating sign-in link...')
+    const { data: signInData, error: signInError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: inviteData.email,
+    })
+
+    if (signInError) {
+      console.error('Error generating sign-in link:', signInError)
+      throw signInError
+    }
 
     // Send invitation email
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
@@ -102,9 +115,9 @@ Deno.serve(async (req) => {
           <h2 style="color: #00A979;">Welcome to CupShup!</h2>
           <p>Hello ${inviteData.name},</p>
           <p>You've been invited to join CupShup as a ${inviteData.role}. Click the link below to set up your account:</p>
-          <p><a href="${magicLinkData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
+          <p><a href="${signInData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p style="word-break: break-all;">${magicLinkData.properties?.action_link}</p>
+          <p style="word-break: break-all;">${signInData.properties?.action_link}</p>
           <p>This invitation link will expire in 24 hours.</p>
           <p>Best regards,<br>The CupShup Team</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
