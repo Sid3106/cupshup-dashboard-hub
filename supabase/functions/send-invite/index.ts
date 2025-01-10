@@ -42,11 +42,37 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // First, insert into profiles table
+    // First, generate sign-in link which will create the user
+    console.log('Generating sign-in link...')
+    const { data: signInData, error: signInError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: inviteData.email,
+      options: {
+        data: {
+          name: inviteData.name,
+          phone_number: inviteData.phone_number,
+          role: inviteData.role,
+          city: inviteData.city,
+          ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
+        }
+      }
+    })
+
+    if (signInError) {
+      console.error('Error generating sign-in link:', signInError)
+      throw signInError
+    }
+
+    // Get the user ID from the sign-in data
+    const userId = signInData.user.id
+    console.log('User ID generated:', userId)
+
+    // Insert into profiles table with the user ID
     console.log('Creating profile...')
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
+        user_id: userId,
         name: inviteData.name,
         role: inviteData.role,
         phone_number: inviteData.phone_number,
@@ -68,25 +94,14 @@ Deno.serve(async (req) => {
           vendor_name: inviteData.name,
           vendor_email: inviteData.email,
           vendor_phone: inviteData.phone_number,
-          city: inviteData.city
+          city: inviteData.city,
+          user_id: userId
         })
 
       if (vendorError) {
         console.error('Error creating vendor:', vendorError)
         throw vendorError
       }
-    }
-
-    // Generate sign-in link
-    console.log('Generating sign-in link...')
-    const { data: signInData, error: signInError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: inviteData.email,
-    })
-
-    if (signInError) {
-      console.error('Error generating sign-in link:', signInError)
-      throw signInError
     }
 
     // Send invitation email
