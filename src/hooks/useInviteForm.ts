@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 interface InviteFormData {
@@ -21,14 +21,14 @@ const initialFormData: InviteFormData = {
 export const useInviteForm = (onSuccess: () => void) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<InviteFormData>(initialFormData);
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Send magic link invitation
+      console.log('Sending invitation to:', formData.email);
+      
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email: formData.email,
         options: {
@@ -43,24 +43,17 @@ export const useInviteForm = (onSuccess: () => void) => {
       });
 
       if (signInError) {
+        console.error('SignIn Error:', signInError);
         throw signInError;
       }
 
-      toast({
-        title: "Success",
-        description: "Invitation sent successfully. The user will receive a magic link via email.",
-      });
-
+      toast.success("Invitation sent successfully. The user will receive a magic link via email.");
       onSuccess();
       setFormData(initialFormData);
     } catch (error) {
-      console.error('Error sending invitation:', error);
+      console.error('Error details:', error);
       
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send invitation",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to send invitation");
     } finally {
       setIsLoading(false);
     }

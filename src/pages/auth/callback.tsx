@@ -10,7 +10,6 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Get the user session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) throw sessionError;
@@ -19,22 +18,7 @@ export default function AuthCallbackPage() {
         const { user } = session;
         const metadata = user.user_metadata;
 
-        if (metadata.role === 'Vendor') {
-          // Create vendor record
-          const { error: vendorError } = await supabase
-            .from('vendors')
-            .insert({
-              vendor_name: metadata.name,
-              vendor_email: user.email,
-              vendor_phone: metadata.phone_number,
-              city: metadata.city,
-              user_id: user.id,
-            });
-
-          if (vendorError) throw vendorError;
-        }
-
-        // Create profile record
+        // Create profile record first
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
@@ -47,6 +31,21 @@ export default function AuthCallbackPage() {
           });
 
         if (profileError) throw profileError;
+
+        // If role is Vendor, create vendor record
+        if (metadata.role === 'Vendor') {
+          const { error: vendorError } = await supabase
+            .from('vendors')
+            .insert({
+              vendor_name: metadata.name,
+              vendor_email: user.email,
+              vendor_phone: metadata.phone_number,
+              city: metadata.city,
+              user_id: user.id,
+            });
+
+          if (vendorError) throw vendorError;
+        }
 
         toast.success("Account setup completed successfully");
         navigate("/dashboard");
