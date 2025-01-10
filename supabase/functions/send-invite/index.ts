@@ -42,28 +42,33 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Send OTP email
-    console.log('Sending OTP email...')
+    // Prepare user metadata as a plain object (will be automatically converted to JSONB)
+    const userMetadata = {
+      name: inviteData.name,
+      phone_number: inviteData.phone_number,
+      role: inviteData.role,
+      city: inviteData.city,
+      ...(inviteData.brand_name ? { brand_name: inviteData.brand_name } : {})
+    }
+
+    console.log('Sending magic link with metadata:', JSON.stringify(userMetadata))
+
+    // Send magic link
     const { data: otpData, error: otpError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: inviteData.email,
       options: {
-        data: {
-          name: inviteData.name,
-          phone_number: inviteData.phone_number,
-          role: inviteData.role,
-          city: inviteData.city,
-          ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
-        }
+        data: userMetadata,
+        redirectTo: `${new URL(req.url).origin}/auth/callback`
       }
     })
 
     if (otpError) {
-      console.error('Error generating OTP:', otpError)
+      console.error('Error generating magic link:', otpError)
       throw otpError
     }
 
-    console.log('OTP generated successfully')
+    console.log('Magic link generated successfully')
 
     // Send invitation email
     const resend = new Resend(resendApiKey)
