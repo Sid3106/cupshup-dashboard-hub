@@ -42,8 +42,14 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // First check if user already exists
-    const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail(inviteData.email)
+    // First check if user already exists using listUsers
+    const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+    if (listError) {
+      console.error('Error checking existing users:', listError)
+      throw listError
+    }
+
+    const existingUser = users.users.find(user => user.email === inviteData.email)
     if (existingUser) {
       throw new Error('User already exists')
     }
