@@ -21,14 +21,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
 
     if (!supabaseUrl || !serviceRoleKey || !resendApiKey) {
-      console.error('Missing required environment variables')
-      throw new Error('Server configuration error')
+      throw new Error('Missing required environment variables')
     }
 
     console.log('Initializing Supabase admin client...')
@@ -37,12 +35,11 @@ Deno.serve(async (req) => {
     const inviteData: InviteRequest = await req.json()
     console.log('Processing invite request for:', inviteData.email)
 
-    // Validate required fields
     if (!inviteData.email || !inviteData.name || !inviteData.phone_number || !inviteData.role || !inviteData.city) {
       throw new Error('Missing required fields')
     }
 
-    // First check if user already exists using listUsers
+    // Check for existing user
     const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers()
     if (listError) {
       console.error('Error checking existing users:', listError)
@@ -51,7 +48,7 @@ Deno.serve(async (req) => {
 
     const existingUser = users.users.find(user => user.email === inviteData.email)
     if (existingUser) {
-      throw new Error('User already exists')
+      throw new Error('Email already associated with an account')
     }
 
     // Prepare user metadata - ensure it's a plain object
@@ -62,14 +59,14 @@ Deno.serve(async (req) => {
       city: inviteData.city,
     }
 
-    // Add brand_name only if it exists and role is Client
+    // Add brand_name only if role is Client and brand_name exists
     if (inviteData.role === 'Client' && inviteData.brand_name) {
       userMetadata.brand_name = inviteData.brand_name
     }
 
     console.log('Generating magic link with metadata:', JSON.stringify(userMetadata))
 
-    // Generate magic link with simplified metadata
+    // Generate magic link
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: inviteData.email,
