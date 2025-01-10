@@ -29,22 +29,29 @@ export const useInviteForm = (onSuccess: () => void) => {
     try {
       console.log('Sending invitation to:', formData.email);
       
-      const { error: signInError } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          data: {
-            name: formData.name,
-            phone_number: formData.phone_number,
-            role: formData.role,
-            city: formData.city,
+      // Wrap the OTP call in a single try-catch to prevent multiple response reads
+      let signInResponse;
+      try {
+        signInResponse = await supabase.auth.signInWithOtp({
+          email: formData.email,
+          options: {
+            data: {
+              name: formData.name,
+              phone_number: formData.phone_number,
+              role: formData.role,
+              city: formData.city,
+            },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (signInError) {
+        });
+      } catch (signInError) {
         console.error('SignIn Error:', signInError);
-        throw signInError;
+        throw new Error(signInError.message || 'Failed to send invitation');
+      }
+
+      if (signInResponse.error) {
+        console.error('SignIn Response Error:', signInResponse.error);
+        throw signInResponse.error;
       }
 
       toast.success("Invitation sent successfully. The user will receive a magic link via email.");
@@ -52,7 +59,6 @@ export const useInviteForm = (onSuccess: () => void) => {
       setFormData(initialFormData);
     } catch (error) {
       console.error('Error details:', error);
-      
       toast.error(error.message || "Failed to send invitation");
     } finally {
       setIsLoading(false);
