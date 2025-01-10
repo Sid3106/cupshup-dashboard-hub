@@ -8,7 +8,6 @@ interface InviteFormData {
   phone_number: string;
   role: string;
   city: string;
-  brand_name?: string;
 }
 
 const initialFormData: InviteFormData = {
@@ -17,7 +16,6 @@ const initialFormData: InviteFormData = {
   phone_number: '',
   role: '',
   city: '',
-  brand_name: '',
 };
 
 export const useInviteForm = (onSuccess: () => void) => {
@@ -30,22 +28,27 @@ export const useInviteForm = (onSuccess: () => void) => {
     setIsLoading(true);
 
     try {
-      // Validate brand name for client role
-      if (formData.role === 'Client' && !formData.brand_name) {
-        throw new Error('Brand name is required for client role');
-      }
-
-      const { data, error } = await supabase.functions.invoke('send-invite', {
-        body: formData
+      // Send magic link invitation
+      const { error: signInError } = await supabase.auth.signInWithOtp({
+        email: formData.email,
+        options: {
+          data: {
+            name: formData.name,
+            phone_number: formData.phone_number,
+            role: formData.role,
+            city: formData.city,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
-      if (error) {
-        throw error;
+      if (signInError) {
+        throw signInError;
       }
 
       toast({
         title: "Success",
-        description: "Invitation sent successfully",
+        description: "Invitation sent successfully. The user will receive a magic link via email.",
       });
 
       onSuccess();
@@ -53,14 +56,9 @@ export const useInviteForm = (onSuccess: () => void) => {
     } catch (error) {
       console.error('Error sending invitation:', error);
       
-      const errorMessage = error.message || "Failed to send invitation";
-      const description = errorMessage.includes("already associated with an account") 
-        ? "This email is already associated with an account. The user already has access to the platform."
-        : errorMessage;
-
       toast({
         title: "Error",
-        description,
+        description: error.message || "Failed to send invitation",
         variant: "destructive",
       });
     } finally {
@@ -69,13 +67,7 @@ export const useInviteForm = (onSuccess: () => void) => {
   };
 
   const updateField = (field: keyof InviteFormData, value: string) => {
-    setFormData(prev => {
-      // Clear brand_name when switching away from Client role
-      if (field === 'role' && value !== 'Client') {
-        return { ...prev, [field]: value, brand_name: '' };
-      }
-      return { ...prev, [field]: value };
-    });
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return {

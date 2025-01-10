@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CITIES, ROLES, BRANDS } from "@/constants/formOptions";
+import { CITIES, ROLES } from "@/constants/formOptions";
 
 interface InviteFormFieldsProps {
   formData: {
@@ -10,7 +10,6 @@ interface InviteFormFieldsProps {
     phone_number: string;
     role: string;
     city: string;
-    brand_name?: string;
   };
   updateField: (field: string, value: string) => void;
 }
@@ -68,28 +67,6 @@ export function InviteFormFields({ formData, updateField }: InviteFormFieldsProp
           </SelectContent>
         </Select>
       </div>
-
-      {formData.role === 'Client' && (
-        <div className="space-y-2">
-          <Label htmlFor="brand">Brand</Label>
-          <Select
-            value={formData.brand_name}
-            onValueChange={(value) => updateField('brand_name', value)}
-            required
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select brand" />
-            </SelectTrigger>
-            <SelectContent>
-              {BRANDS.map((brand) => (
-                <SelectItem key={brand} value={brand}>
-                  {brand}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       <div className="space-y-2">
         <Label htmlFor="city">City</Label>

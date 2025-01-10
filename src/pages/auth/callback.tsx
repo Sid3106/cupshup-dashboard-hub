@@ -1,30 +1,73 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function AuthCallbackPage() {
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Get the user session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) throw error;
-        
-        if (session) {
-          navigate('/dashboard');
-        } else {
-          navigate('/auth');
+        if (sessionError) throw sessionError;
+        if (!session?.user) throw new Error("No user session found");
+
+        const { user } = session;
+        const metadata = user.user_metadata;
+
+        if (metadata.role === 'Vendor') {
+          // Create vendor record
+          const { error: vendorError } = await supabase
+            .from('vendors')
+            .insert({
+              vendor_name: metadata.name,
+              vendor_email: user.email,
+              vendor_phone: metadata.phone_number,
+              city: metadata.city,
+              user_id: user.id,
+            });
+
+          if (vendorError) throw vendorError;
         }
+
+        // Create profile record
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            name: metadata.name,
+            role: metadata.role,
+            phone_number: metadata.phone_number,
+            city: metadata.city,
+            email_id: user.email,
+          });
+
+        if (profileError) throw profileError;
+
+        toast.success("Account setup completed successfully");
+        navigate("/dashboard");
       } catch (error) {
-        console.error('Error handling auth callback:', error);
-        navigate('/auth');
+        console.error("Error in auth callback:", error);
+        setError(error.message);
+        toast.error("Failed to complete account setup");
+        navigate("/auth");
       }
     };
 
     handleCallback();
   }, [navigate]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen">
