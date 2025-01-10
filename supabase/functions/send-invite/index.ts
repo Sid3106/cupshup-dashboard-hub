@@ -21,8 +21,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Initialize Supabase client with service role key
-    console.log('Initializing Supabase admin client with service role')
+    console.log('Starting invite process...')
+    
+    // Initialize Supabase admin client with service role key
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -34,10 +35,6 @@ Deno.serve(async (req) => {
       }
     )
 
-    // Log environment variables (without exposing sensitive data)
-    console.log('Supabase URL configured:', !!Deno.env.get('SUPABASE_URL'))
-    console.log('Service Role Key configured:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
-
     const inviteData: InviteRequest = await req.json()
     console.log('Received invite request:', inviteData)
 
@@ -46,17 +43,18 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Check for existing user in auth.users
-    const { data: existingAuthUser, error: existingAuthError } = await supabaseAdmin
-      .auth.admin.listUsers()
-
-    if (existingAuthError) {
-      console.error('Error checking existing auth users:', existingAuthError)
-      throw new Error(`Failed to check existing auth users: ${existingAuthError.message}`)
+    // Check for existing user
+    console.log('Checking for existing user...')
+    const { data: existingUsers, error: existingUserError } = await supabaseAdmin.auth.admin.listUsers()
+    
+    if (existingUserError) {
+      console.error('Error checking existing users:', existingUserError)
+      throw new Error(`Failed to check existing users: ${existingUserError.message}`)
     }
 
-    const userExists = existingAuthUser.users.some(user => user.email === inviteData.email)
+    const userExists = existingUsers.users.some(user => user.email === inviteData.email)
     if (userExists) {
+      console.log('User already exists:', inviteData.email)
       return new Response(
         JSON.stringify({ 
           error: "This email is already associated with an account"
@@ -68,39 +66,20 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Generate a secure random password
-    const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
-
-    // Structure user metadata
-    const userMetadata = {
-      name: inviteData.name,
-      phone_number: inviteData.phone_number,
-      role: inviteData.role,
-      city: inviteData.city,
-      ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
-    }
-
-    console.log('Creating user with metadata:', userMetadata)
-
-    // Create user with service role key
-    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: inviteData.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: userMetadata
-    })
-
-    if (createError) {
-      console.error('Error creating user:', createError)
-      throw createError
-    }
-
-    console.log('User created successfully:', userData)
-
-    // Generate magic link for password setup
+    // Generate magic link
+    console.log('Generating magic link...')
     const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: inviteData.email,
+      options: {
+        data: {
+          name: inviteData.name,
+          phone_number: inviteData.phone_number,
+          role: inviteData.role,
+          city: inviteData.city,
+          ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
+        }
+      }
     })
 
     if (magicLinkError) {
@@ -113,6 +92,7 @@ Deno.serve(async (req) => {
     // Send invitation email
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
     
+    console.log('Sending invitation email...')
     const emailResponse = await resend.emails.send({
       from: 'CupShup <no-reply@cupshup.co.in>',
       to: inviteData.email,
