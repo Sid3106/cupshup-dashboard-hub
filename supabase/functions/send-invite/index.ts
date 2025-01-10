@@ -42,75 +42,28 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // First create the user with a random password
-    console.log('Creating user...')
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-      email: inviteData.email,
-      email_confirm: true,
-      user_metadata: {
-        name: inviteData.name,
-        phone_number: inviteData.phone_number,
-        role: inviteData.role,
-        city: inviteData.city,
-        ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
-      }
-    })
-
-    if (userError) {
-      console.error('Error creating user:', userError)
-      throw userError
-    }
-
-    console.log('User created successfully:', userData.user.id)
-
-    // Insert into profiles table
-    console.log('Creating profile...')
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .insert({
-        user_id: userData.user.id,
-        name: inviteData.name,
-        role: inviteData.role,
-        phone_number: inviteData.phone_number,
-        city: inviteData.city,
-        email_id: inviteData.email
-      })
-
-    if (profileError) {
-      console.error('Error creating profile:', profileError)
-      throw profileError
-    }
-
-    // If role is Vendor, insert into vendors table
-    if (inviteData.role === 'Vendor') {
-      console.log('Creating vendor record...')
-      const { error: vendorError } = await supabaseAdmin
-        .from('vendors')
-        .insert({
-          vendor_name: inviteData.name,
-          vendor_email: inviteData.email,
-          vendor_phone: inviteData.phone_number,
-          city: inviteData.city,
-          user_id: userData.user.id
-        })
-
-      if (vendorError) {
-        console.error('Error creating vendor:', vendorError)
-        throw vendorError
-      }
-    }
-
-    // Generate password reset link (which will act as our magic link)
-    console.log('Generating magic link...')
-    const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+    // Send OTP email
+    console.log('Sending OTP email...')
+    const { data: otpData, error: otpError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: inviteData.email,
+      options: {
+        data: {
+          name: inviteData.name,
+          phone_number: inviteData.phone_number,
+          role: inviteData.role,
+          city: inviteData.city,
+          ...(inviteData.brand_name && { brand_name: inviteData.brand_name })
+        }
+      }
     })
 
-    if (resetError) {
-      console.error('Error generating magic link:', resetError)
-      throw resetError
+    if (otpError) {
+      console.error('Error generating OTP:', otpError)
+      throw otpError
     }
+
+    console.log('OTP generated successfully')
 
     // Send invitation email
     const resend = new Resend(resendApiKey)
@@ -125,9 +78,9 @@ Deno.serve(async (req) => {
           <h2 style="color: #00A979;">Welcome to CupShup!</h2>
           <p>Hello ${inviteData.name},</p>
           <p>You've been invited to join CupShup as a ${inviteData.role}. Click the link below to sign in to your account:</p>
-          <p><a href="${resetData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign In</a></p>
+          <p><a href="${otpData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign In</a></p>
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p style="word-break: break-all;">${resetData.properties?.action_link}</p>
+          <p style="word-break: break-all;">${otpData.properties?.action_link}</p>
           <p>This link will expire in 24 hours.</p>
           <p>Best regards,<br>The CupShup Team</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
