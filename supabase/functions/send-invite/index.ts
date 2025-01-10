@@ -42,19 +42,29 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Prepare user metadata as a plain object (will be automatically converted to JSONB)
+    // First check if user already exists
+    const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail(inviteData.email)
+    if (existingUser) {
+      throw new Error('User already exists')
+    }
+
+    // Prepare user metadata - ensure it's a plain object
     const userMetadata = {
       name: inviteData.name,
       phone_number: inviteData.phone_number,
       role: inviteData.role,
       city: inviteData.city,
-      ...(inviteData.brand_name ? { brand_name: inviteData.brand_name } : {})
     }
 
-    console.log('Sending magic link with metadata:', JSON.stringify(userMetadata))
+    // Add brand_name only if it exists and role is Client
+    if (inviteData.role === 'Client' && inviteData.brand_name) {
+      userMetadata.brand_name = inviteData.brand_name
+    }
 
-    // Send magic link
-    const { data: otpData, error: otpError } = await supabaseAdmin.auth.admin.generateLink({
+    console.log('Generating magic link with metadata:', JSON.stringify(userMetadata))
+
+    // Generate magic link with simplified metadata
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: inviteData.email,
       options: {
@@ -63,9 +73,9 @@ Deno.serve(async (req) => {
       }
     })
 
-    if (otpError) {
-      console.error('Error generating magic link:', otpError)
-      throw otpError
+    if (linkError) {
+      console.error('Error generating magic link:', linkError)
+      throw linkError
     }
 
     console.log('Magic link generated successfully')
@@ -83,9 +93,9 @@ Deno.serve(async (req) => {
           <h2 style="color: #00A979;">Welcome to CupShup!</h2>
           <p>Hello ${inviteData.name},</p>
           <p>You've been invited to join CupShup as a ${inviteData.role}. Click the link below to sign in to your account:</p>
-          <p><a href="${otpData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign In</a></p>
+          <p><a href="${linkData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign In</a></p>
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p style="word-break: break-all;">${otpData.properties?.action_link}</p>
+          <p style="word-break: break-all;">${linkData.properties?.action_link}</p>
           <p>This link will expire in 24 hours.</p>
           <p>Best regards,<br>The CupShup Team</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
