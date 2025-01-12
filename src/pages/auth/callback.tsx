@@ -9,46 +9,64 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        console.log('AuthCallback: Starting authentication check');
+        // Get the URL hash
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
         
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('AuthCallback: Session error:', error);
+        if (!accessToken) {
+          console.error('AuthCallback: No access token found in URL');
+          toast.error("Invalid authentication link. Please request a new one.");
+          navigate('/auth');
+          return;
+        }
+
+        // Set the session using the access token
+        const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: hashParams.get('refresh_token') || '',
+        });
+
+        if (sessionError) {
+          console.error('AuthCallback: Session error:', sessionError);
           toast.error("Authentication failed. Please try signing in again.");
           navigate('/auth');
           return;
         }
-        
-        if (session) {
-          console.log('AuthCallback: Session found, checking profile');
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
 
-          if (profileError) {
-            console.error('AuthCallback: Profile error:', profileError);
-            toast.error("Error accessing user profile. Please try again.");
-            navigate('/auth');
-            return;
-          }
-
-          if (profile) {
-            console.log('AuthCallback: Profile found, redirecting to dashboard');
-            toast.success("Successfully signed in!");
-            navigate('/dashboard');
-          } else {
-            console.log('AuthCallback: No profile found');
-            toast.error("User profile not found. Please contact support.");
-            navigate('/auth');
-          }
-        } else {
-          console.log('AuthCallback: No session found');
-          toast.error("No active session found. Please try signing in again.");
+        if (!session?.user) {
+          console.error('AuthCallback: No user in session');
+          toast.error("Unable to verify user. Please try again.");
           navigate('/auth');
+          return;
         }
+
+        console.log('AuthCallback: Session established, checking profile');
+        
+        // Check if user has a profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('AuthCallback: Profile error:', profileError);
+          toast.error("Error accessing user profile. Please try again.");
+          navigate('/auth');
+          return;
+        }
+
+        if (!profile) {
+          console.error('AuthCallback: No profile found');
+          toast.error("User profile not found. Please contact support.");
+          navigate('/auth');
+          return;
+        }
+
+        console.log('AuthCallback: Authentication successful, redirecting to dashboard');
+        toast.success("Successfully signed in!");
+        navigate('/dashboard');
+
       } catch (error) {
         console.error('AuthCallback: Unexpected error:', error);
         toast.error("An unexpected error occurred. Please try again.");
