@@ -59,7 +59,7 @@ export default function AuthPage() {
       setShowOTPInput(true);
       toast({
         title: "OTP Sent",
-        description: "Please check your email for the OTP",
+        description: "Please check your email for the OTP code",
       });
     } catch (error: any) {
       console.error('Email submission error:', error);
