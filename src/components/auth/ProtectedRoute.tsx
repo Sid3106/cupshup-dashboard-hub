@@ -14,18 +14,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     let mounted = true;
-    console.log('ProtectedRoute: Initializing auth check');
     
     const checkAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('ProtectedRoute: Session error:', error);
-          throw error;
-        }
+        const { data: { session } } = await supabase.auth.getSession();
         
-        console.log('ProtectedRoute: Session check result:', !!session);
-
         if (!session) {
           if (mounted) {
             setIsAuthenticated(false);
@@ -36,61 +29,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         }
 
         if (mounted) {
-          try {
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('user_id', session.user.id)
-              .single();
-
-            if (profileError) throw profileError;
-
-            console.log('ProtectedRoute: Profile check result:', !!profile);
-            setIsAuthenticated(!!profile);
-            setIsLoading(false);
-            
-            if (!profile) {
-              toast.error("User profile not found. Please contact support.");
-            }
-          } catch (error) {
-            console.error('ProtectedRoute: Profile fetch error:', error);
-            setIsAuthenticated(false);
-            setIsLoading(false);
-            toast.error("Error accessing user profile");
-          }
-        }
-      } catch (error) {
-        console.error('ProtectedRoute: Auth check error:', error);
-        if (mounted) {
-          setIsAuthenticated(false);
-          setIsLoading(false);
-          toast.error("Authentication error. Please try again.");
-        }
-      }
-    };
-
-    // Initial check
-    checkAuth();
-
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('ProtectedRoute: Auth state changed:', event);
-      
-      if (!mounted) return;
-
-      if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        navigate('/auth', { replace: true });
-      } else if (event === 'SIGNED_IN' && session) {
-        try {
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', session.user.id)
             .single();
-
-          if (profileError) throw profileError;
 
           setIsAuthenticated(!!profile);
           setIsLoading(false);
@@ -98,24 +41,49 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           if (!profile) {
             toast.error("User profile not found. Please contact support.");
           }
-        } catch (error) {
-          console.error('ProtectedRoute: Profile fetch error on auth change:', error);
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        if (mounted) {
           setIsAuthenticated(false);
           setIsLoading(false);
-          toast.error("Error accessing user profile");
+          toast.error("Authentication error occurred");
+        }
+      }
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        navigate('/auth', { replace: true });
+      } else if (event === 'SIGNED_IN' && session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+
+        setIsAuthenticated(!!profile);
+        setIsLoading(false);
+        
+        if (!profile) {
+          toast.error("User profile not found. Please contact support.");
         }
       }
     });
 
     return () => {
-      console.log('ProtectedRoute: Cleaning up');
       mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
 
   if (isLoading) {
-    console.log('ProtectedRoute: Showing loading spinner');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00A979]"></div>
@@ -123,6 +91,5 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  console.log('ProtectedRoute: Rendering final state:', { isAuthenticated });
   return isAuthenticated ? children : <Navigate to="/auth" replace />;
 }
