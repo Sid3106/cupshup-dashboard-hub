@@ -50,7 +50,6 @@ export default function AuthPage() {
         email: values.email,
         options: {
           shouldCreateUser: false, // Only allow existing users
-          channel: 'email', // Force email channel only
         },
       });
 
