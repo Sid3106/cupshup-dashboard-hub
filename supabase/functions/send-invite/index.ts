@@ -21,12 +21,14 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Validate environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
 
     if (!supabaseUrl || !serviceRoleKey || !resendApiKey) {
-      throw new Error('Missing required environment variables')
+      console.error('Missing required environment variables')
+      throw new Error('Server configuration error')
     }
 
     console.log('Initializing Supabase admin client...')
@@ -35,39 +37,24 @@ Deno.serve(async (req) => {
     const inviteData: InviteRequest = await req.json()
     console.log('Processing invite request for:', inviteData.email)
 
+    // Validate required fields
     if (!inviteData.email || !inviteData.name || !inviteData.phone_number || !inviteData.role || !inviteData.city) {
       throw new Error('Missing required fields')
     }
 
-    // Check for existing user
-    const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-    if (listError) {
-      console.error('Error checking existing users:', listError)
-      throw listError
-    }
-
-    const existingUser = users.users.find(user => user.email === inviteData.email)
-    if (existingUser) {
-      throw new Error('Email already associated with an account')
-    }
-
-    // Prepare user metadata - ensure it's a plain object
+    // Prepare user metadata as a plain object (will be automatically converted to JSONB)
     const userMetadata = {
       name: inviteData.name,
       phone_number: inviteData.phone_number,
       role: inviteData.role,
       city: inviteData.city,
+      ...(inviteData.brand_name ? { brand_name: inviteData.brand_name } : {})
     }
 
-    // Add brand_name only if role is Client and brand_name exists
-    if (inviteData.role === 'Client' && inviteData.brand_name) {
-      userMetadata.brand_name = inviteData.brand_name
-    }
+    console.log('Sending magic link with metadata:', JSON.stringify(userMetadata))
 
-    console.log('Generating magic link with metadata:', JSON.stringify(userMetadata))
-
-    // Generate magic link
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    // Send magic link
+    const { data: otpData, error: otpError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: inviteData.email,
       options: {
@@ -76,9 +63,9 @@ Deno.serve(async (req) => {
       }
     })
 
-    if (linkError) {
-      console.error('Error generating magic link:', linkError)
-      throw linkError
+    if (otpError) {
+      console.error('Error generating magic link:', otpError)
+      throw otpError
     }
 
     console.log('Magic link generated successfully')
@@ -96,9 +83,9 @@ Deno.serve(async (req) => {
           <h2 style="color: #00A979;">Welcome to CupShup!</h2>
           <p>Hello ${inviteData.name},</p>
           <p>You've been invited to join CupShup as a ${inviteData.role}. Click the link below to sign in to your account:</p>
-          <p><a href="${linkData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign In</a></p>
+          <p><a href="${otpData.properties?.action_link}" style="background-color: #00A979; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sign In</a></p>
           <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p style="word-break: break-all;">${linkData.properties?.action_link}</p>
+          <p style="word-break: break-all;">${otpData.properties?.action_link}</p>
           <p>This link will expire in 24 hours.</p>
           <p>Best regards,<br>The CupShup Team</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">

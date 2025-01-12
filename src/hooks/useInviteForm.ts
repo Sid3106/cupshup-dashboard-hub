@@ -1,79 +1,81 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface InviteFormData {
+  name: string;
   email: string;
+  phone_number: string;
   role: string;
+  city: string;
+  brand_name?: string;
 }
 
 const initialFormData: InviteFormData = {
+  name: '',
   email: '',
+  phone_number: '',
   role: '',
+  city: '',
+  brand_name: '',
 };
-
-const COOLDOWN_PERIOD = 20000; // 20 seconds in milliseconds
-let lastInviteTime = 0;
 
 export const useInviteForm = (onSuccess: () => void) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<InviteFormData>(initialFormData);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check if enough time has passed since the last invite
-    const now = Date.now();
-    const timeSinceLastInvite = now - lastInviteTime;
-    
-    if (timeSinceLastInvite < COOLDOWN_PERIOD) {
-      const remainingSeconds = Math.ceil((COOLDOWN_PERIOD - timeSinceLastInvite) / 1000);
-      toast.error(`Please wait ${remainingSeconds} seconds before sending another invitation`);
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      console.log('Sending invitation to:', formData.email);
-      
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          data: {
-            role: formData.role,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+      // Validate brand name for client role
+      if (formData.role === 'Client' && !formData.brand_name) {
+        throw new Error('Brand name is required for client role');
+      }
+
+      const { data, error } = await supabase.functions.invoke('send-invite', {
+        body: formData
       });
 
       if (error) {
-        if (error.message?.includes('rate_limit')) {
-          toast.error("Please wait a few seconds before trying again");
-          return;
-        }
         throw error;
       }
 
-      console.log('OTP Response:', data);
-      lastInviteTime = Date.now();
-      toast.success("Invitation sent successfully. The user will receive a magic link via email.");
+      toast({
+        title: "Success",
+        description: "Invitation sent successfully",
+      });
+
       onSuccess();
       setFormData(initialFormData);
     } catch (error) {
-      console.error('Invitation Error:', error);
-      if (error.message?.includes('rate_limit')) {
-        toast.error("Please wait a few seconds before trying again");
-      } else {
-        toast.error(error.message || "Failed to send invitation");
-      }
+      console.error('Error sending invitation:', error);
+      
+      const errorMessage = error.message || "Failed to send invitation";
+      const description = errorMessage.includes("already associated with an account") 
+        ? "This email is already associated with an account. The user already has access to the platform."
+        : errorMessage;
+
+      toast({
+        title: "Error",
+        description,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const updateField = (field: keyof InviteFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      // Clear brand_name when switching away from Client role
+      if (field === 'role' && value !== 'Client') {
+        return { ...prev, [field]: value, brand_name: '' };
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   return {
