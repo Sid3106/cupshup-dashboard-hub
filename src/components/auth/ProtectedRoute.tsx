@@ -79,7 +79,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed in ProtectedRoute:', event, session?.user?.id);
       
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      if (event === 'SIGNED_OUT') {
         if (mounted) {
           setIsAuthenticated(false);
           navigate('/auth', { replace: true });
