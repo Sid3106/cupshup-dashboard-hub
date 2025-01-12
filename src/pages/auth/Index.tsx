@@ -31,14 +31,14 @@ export default function AuthPage() {
     try {
       setAuthError(null);
       
-      // First, check if the user exists
-      const { data: users, error: userCheckError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', values.email)
-        .single();
+      // First, check if the user exists in auth.users
+      const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers({
+        filters: {
+          email: values.email
+        }
+      });
 
-      if (userCheckError || !users) {
+      if (getUserError || !users || users.length === 0) {
         setAuthError("Please contact someone from CupShup for access");
         toast({
           variant: "destructive",
