@@ -27,16 +27,15 @@ export function PublicRoute({ children }: PublicRouteProps) {
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-
-        console.log('PublicRoute: Profile check result:', !!profile, profileError);
-
         if (mounted) {
-          setIsAuthenticated(!profileError && !!profile);
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+
+          console.log('PublicRoute: Profile check result:', !!profile);
+          setIsAuthenticated(!!profile);
           setIsLoading(false);
         }
       } catch (error) {
@@ -53,22 +52,20 @@ export function PublicRoute({ children }: PublicRouteProps) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('PublicRoute: Auth state changed:', event);
       
-      if (event === 'SIGNED_IN' && session) {
+      if (!mounted) return;
+
+      if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+      } else if (event === 'SIGNED_IN' && session) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', session.user.id)
           .single();
 
-        if (mounted) {
-          setIsAuthenticated(!!profile);
-          setIsLoading(false);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        if (mounted) {
-          setIsAuthenticated(false);
-          setIsLoading(false);
-        }
+        setIsAuthenticated(!!profile);
+        setIsLoading(false);
       }
     });
 

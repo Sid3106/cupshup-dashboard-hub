@@ -29,16 +29,15 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-
-        console.log('ProtectedRoute: Profile check result:', !!profile, profileError);
-
         if (mounted) {
-          setIsAuthenticated(!profileError && !!profile);
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+
+          console.log('ProtectedRoute: Profile check result:', !!profile);
+          setIsAuthenticated(!!profile);
           setIsLoading(false);
         }
       } catch (error) {
@@ -56,12 +55,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('ProtectedRoute: Auth state changed:', event);
       
+      if (!mounted) return;
+
       if (event === 'SIGNED_OUT') {
-        if (mounted) {
-          setIsAuthenticated(false);
-          setIsLoading(false);
-          navigate('/auth', { replace: true });
-        }
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        navigate('/auth', { replace: true });
       } else if (event === 'SIGNED_IN' && session) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -69,10 +68,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           .eq('user_id', session.user.id)
           .single();
 
-        if (mounted) {
-          setIsAuthenticated(!!profile);
-          setIsLoading(false);
-        }
+        setIsAuthenticated(!!profile);
+        setIsLoading(false);
       }
     });
 
