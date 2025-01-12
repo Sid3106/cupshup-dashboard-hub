@@ -31,20 +31,38 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Get the current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error('Auth error:', error);
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          throw sessionError;
+        }
+
+        if (!session) {
+          // No session found, clear any stale data
+          await supabase.auth.signOut();
           setIsAuthenticated(false);
-          toast.error("Session expired. Please sign in again.");
           return;
         }
 
-        setIsAuthenticated(!!session);
+        // Verify the session is still valid
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError || !user) {
+          console.error('User verification error:', userError);
+          await supabase.auth.signOut();
+          setIsAuthenticated(false);
+          return;
+        }
+
+        setIsAuthenticated(true);
       } catch (error) {
-        console.error('Session check error:', error);
+        console.error('Auth check error:', error);
+        // Clear the invalid session
+        await supabase.auth.signOut();
         setIsAuthenticated(false);
-        toast.error("Authentication error. Please sign in again.");
+        toast.error("Session expired. Please sign in again.");
       } finally {
         setIsLoading(false);
       }
@@ -52,8 +70,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setIsAuthenticated(false);
+        navigate('/auth', { replace: true });
+      } else if (event === 'SIGNED_IN' && session) {
+        setIsAuthenticated(true);
+      }
+      
       setIsLoading(false);
     });
 
@@ -77,8 +104,15 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Public route auth error:', error);
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(!!session);
+      }
+      
       setIsLoading(false);
     };
 
