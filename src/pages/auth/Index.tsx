@@ -11,7 +11,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { User } from "@supabase/supabase-js";
 
 const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -32,26 +31,6 @@ export default function AuthPage() {
     try {
       setAuthError(null);
       
-      // First, check if the user exists in auth.users
-      const { data, error: getUserError } = await supabase.auth.admin.listUsers({
-        page: 1,
-        perPage: 1
-      });
-
-      // Check if the user's email exists in the returned users
-      const userExists = data?.users?.some((user: User) => user.email === values.email);
-
-      if (getUserError || !userExists) {
-        setAuthError("Please contact someone from CupShup for access");
-        toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: "Please contact someone from CupShup for access",
-        });
-        return;
-      }
-
-      // If user exists, send magic link
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email: values.email,
         options: {
@@ -59,7 +38,18 @@ export default function AuthPage() {
         },
       });
 
-      if (signInError) throw signInError;
+      if (signInError) {
+        if (signInError.message.includes("User not found")) {
+          setAuthError("Please contact someone from CupShup for access");
+          toast({
+            variant: "destructive",
+            title: "Access Denied",
+            description: "Please contact someone from CupShup for access",
+          });
+          return;
+        }
+        throw signInError;
+      }
 
       toast({
         title: "Magic Link Sent",
