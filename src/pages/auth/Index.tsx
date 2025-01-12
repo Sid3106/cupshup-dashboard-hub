@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthSidebar } from "@/components/auth/AuthSidebar";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,16 +16,9 @@ const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-const otpSchema = z.object({
-  otp: z.string().length(6, "OTP must be 6 digits"),
-});
-
 export default function AuthPage() {
-  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [authError, setAuthError] = useState<string | null>(null);
-  const [showOTPInput, setShowOTPInput] = useState(false);
-  const [email, setEmail] = useState("");
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -36,59 +27,43 @@ export default function AuthPage() {
     },
   });
 
-  const otpForm = useForm<z.infer<typeof otpSchema>>({
-    resolver: zodResolver(otpSchema),
-    defaultValues: {
-      otp: "",
-    },
-  });
-
   const handleEmailSubmit = async (values: z.infer<typeof emailSchema>) => {
     try {
       setAuthError(null);
-      const { error } = await supabase.auth.signInWithOtp({
+      
+      // First, check if the user exists
+      const { data: users, error: userCheckError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', values.email)
+        .single();
+
+      if (userCheckError || !users) {
+        setAuthError("Please contact someone from CupShup for access");
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "Please contact someone from CupShup for access",
+        });
+        return;
+      }
+
+      // If user exists, send magic link
+      const { error: signInError } = await supabase.auth.signInWithOtp({
         email: values.email,
         options: {
-          shouldCreateUser: false, // Only allow existing users
+          shouldCreateUser: false,
         },
       });
 
-      if (error) throw error;
+      if (signInError) throw signInError;
 
-      setEmail(values.email);
-      setShowOTPInput(true);
       toast({
-        title: "OTP Sent",
-        description: "Please check your email for the OTP code",
+        title: "Magic Link Sent",
+        description: "Check your email to sign in",
       });
     } catch (error: any) {
       console.error('Email submission error:', error);
-      setAuthError(error.message);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    }
-  };
-
-  const handleOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
-    try {
-      setAuthError(null);
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: values.otp,
-        type: 'email',
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Successfully logged in",
-      });
-    } catch (error: any) {
-      console.error('OTP verification error:', error);
       setAuthError(error.message);
       toast({
         variant: "destructive",
@@ -119,75 +94,30 @@ export default function AuthPage() {
               </Alert>
             )}
             
-            {!showOTPInput ? (
-              <Form {...emailForm}>
-                <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
-                  <FormField
-                    control={emailForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Enter your email" 
-                            type="email" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full bg-[#00A979]">
-                    Send OTP
-                  </Button>
-                </form>
-              </Form>
-            ) : (
-              <Form {...otpForm}>
-                <form onSubmit={otpForm.handleSubmit(handleOTPSubmit)} className="space-y-4">
-                  <FormField
-                    control={otpForm.control}
-                    name="otp"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Enter OTP</FormLabel>
-                        <FormControl>
-                          <InputOTP maxLength={6} {...field}>
-                            <InputOTPGroup>
-                              <InputOTPSlot index={0} />
-                              <InputOTPSlot index={1} />
-                              <InputOTPSlot index={2} />
-                              <InputOTPSlot index={3} />
-                              <InputOTPSlot index={4} />
-                              <InputOTPSlot index={5} />
-                            </InputOTPGroup>
-                          </InputOTP>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="space-y-2">
-                    <Button type="submit" className="w-full bg-[#00A979]">
-                      Verify OTP
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        setShowOTPInput(false);
-                        setAuthError(null);
-                      }}
-                    >
-                      Back to Email
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            )}
+            <Form {...emailForm}>
+              <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-4">
+                <FormField
+                  control={emailForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter your email" 
+                          type="email" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full bg-[#00A979]">
+                  Log In
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>
