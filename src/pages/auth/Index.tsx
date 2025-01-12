@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { User } from "@supabase/supabase-js";
 
 const emailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -38,7 +39,7 @@ export default function AuthPage() {
       });
 
       // Check if the user's email exists in the returned users
-      const userExists = data?.users.some(user => user.email === values.email);
+      const userExists = data?.users?.some((user: User) => user.email === values.email);
 
       if (getUserError || !userExists) {
         setAuthError("Please contact someone from CupShup for access");
