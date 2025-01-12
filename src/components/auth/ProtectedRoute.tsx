@@ -18,27 +18,46 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('ProtectedRoute: Session error:', error);
+          throw error;
+        }
+        
         console.log('ProtectedRoute: Session check result:', !!session);
 
         if (!session) {
           if (mounted) {
             setIsAuthenticated(false);
             setIsLoading(false);
+            toast.error("Please sign in to access this page");
           }
           return;
         }
 
         if (mounted) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single();
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .single();
 
-          console.log('ProtectedRoute: Profile check result:', !!profile);
-          setIsAuthenticated(!!profile);
-          setIsLoading(false);
+            if (profileError) throw profileError;
+
+            console.log('ProtectedRoute: Profile check result:', !!profile);
+            setIsAuthenticated(!!profile);
+            setIsLoading(false);
+            
+            if (!profile) {
+              toast.error("User profile not found. Please contact support.");
+            }
+          } catch (error) {
+            console.error('ProtectedRoute: Profile fetch error:', error);
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            toast.error("Error accessing user profile");
+          }
         }
       } catch (error) {
         console.error('ProtectedRoute: Auth check error:', error);
@@ -50,8 +69,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       }
     };
 
+    // Initial check
     checkAuth();
 
+    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('ProtectedRoute: Auth state changed:', event);
       
@@ -62,14 +83,27 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         setIsLoading(false);
         navigate('/auth', { replace: true });
       } else if (event === 'SIGNED_IN' && session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
 
-        setIsAuthenticated(!!profile);
-        setIsLoading(false);
+          if (profileError) throw profileError;
+
+          setIsAuthenticated(!!profile);
+          setIsLoading(false);
+          
+          if (!profile) {
+            toast.error("User profile not found. Please contact support.");
+          }
+        } catch (error) {
+          console.error('ProtectedRoute: Profile fetch error on auth change:', error);
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          toast.error("Error accessing user profile");
+        }
       }
     });
 
@@ -82,9 +116,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (isLoading) {
     console.log('ProtectedRoute: Showing loading spinner');
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00A979]"></div>
-    </div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00A979]"></div>
+      </div>
+    );
   }
 
   console.log('ProtectedRoute: Rendering final state:', { isAuthenticated });
