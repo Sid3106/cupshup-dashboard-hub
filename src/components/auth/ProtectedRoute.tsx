@@ -21,7 +21,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         
         if (sessionError) {
           console.error('Session error:', sessionError);
-          throw sessionError;
+          if (mounted) {
+            setIsAuthenticated(false);
+            setIsLoading(false);
+          }
+          return;
         }
 
         if (!session) {
@@ -33,22 +37,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           return;
         }
 
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !user) {
-          console.error('User verification error:', userError);
-          if (mounted) {
-            setIsAuthenticated(false);
-            setIsLoading(false);
-          }
-          return;
-        }
-
         // Verify user profile exists
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id)
           .single();
 
         if (profileError || !profile) {
@@ -70,7 +63,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           setIsAuthenticated(false);
           setIsLoading(false);
         }
-        toast.error("Session expired. Please sign in again.");
+        toast.error("Authentication error. Please try again.");
       }
     };
 
@@ -82,16 +75,21 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       if (event === 'SIGNED_OUT') {
         if (mounted) {
           setIsAuthenticated(false);
+          setIsLoading(false);
           navigate('/auth', { replace: true });
         }
       } else if (event === 'SIGNED_IN' && session) {
-        if (mounted) {
+        // Verify profile exists before setting authenticated
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (!profileError && profile && mounted) {
           setIsAuthenticated(true);
+          setIsLoading(false);
         }
-      }
-      
-      if (mounted) {
-        setIsLoading(false);
       }
     });
 
