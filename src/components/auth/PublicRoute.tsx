@@ -12,19 +12,12 @@ export function PublicRoute({ children }: PublicRouteProps) {
 
   useEffect(() => {
     let mounted = true;
+    console.log('PublicRoute: Initializing auth check');
 
     const checkAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Public route auth error:', error);
-          if (mounted) {
-            setIsAuthenticated(false);
-            setIsLoading(false);
-          }
-          return;
-        }
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('PublicRoute: Session check result:', !!session);
 
         if (!session) {
           if (mounted) {
@@ -34,28 +27,20 @@ export function PublicRoute({ children }: PublicRouteProps) {
           return;
         }
 
-        // Verify user profile exists
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', session.user.id)
           .single();
 
-        if (profileError || !profile) {
-          console.error('Profile verification error:', profileError);
-          if (mounted) {
-            setIsAuthenticated(false);
-            setIsLoading(false);
-          }
-          return;
-        }
+        console.log('PublicRoute: Profile check result:', !!profile, profileError);
 
         if (mounted) {
-          setIsAuthenticated(true);
+          setIsAuthenticated(!profileError && !!profile);
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Auth check error:', error);
+        console.error('PublicRoute: Auth check error:', error);
         if (mounted) {
           setIsAuthenticated(false);
           setIsLoading(false);
@@ -66,41 +51,41 @@ export function PublicRoute({ children }: PublicRouteProps) {
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed in PublicRoute:', event, session?.user?.id);
+      console.log('PublicRoute: Auth state changed:', event);
       
       if (event === 'SIGNED_IN' && session) {
-        // Verify profile exists before setting authenticated
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', session.user.id)
           .single();
 
-        if (!profileError && profile && mounted) {
-          setIsAuthenticated(true);
+        if (mounted) {
+          setIsAuthenticated(!!profile);
+          setIsLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
         if (mounted) {
           setIsAuthenticated(false);
+          setIsLoading(false);
         }
-      }
-      
-      if (mounted) {
-        setIsLoading(false);
       }
     });
 
     return () => {
+      console.log('PublicRoute: Cleaning up');
       mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   if (isLoading) {
+    console.log('PublicRoute: Showing loading spinner');
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00A979]"></div>
     </div>;
   }
 
+  console.log('PublicRoute: Rendering final state:', { isAuthenticated });
   return !isAuthenticated ? children : <Navigate to="/dashboard" replace />;
 }
