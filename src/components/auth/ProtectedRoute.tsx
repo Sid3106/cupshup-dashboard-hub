@@ -13,6 +13,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
+    
     const checkAuth = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -23,8 +25,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         }
 
         if (!session) {
-          await supabase.auth.signOut();
-          setIsAuthenticated(false);
+          console.log('No session found, redirecting to auth');
+          if (mounted) {
+            setIsAuthenticated(false);
+            setIsLoading(false);
+          }
           return;
         }
 
@@ -32,38 +37,66 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         
         if (userError || !user) {
           console.error('User verification error:', userError);
-          await supabase.auth.signOut();
-          setIsAuthenticated(false);
+          if (mounted) {
+            setIsAuthenticated(false);
+            setIsLoading(false);
+          }
           return;
         }
 
-        setIsAuthenticated(true);
+        // Verify user profile exists
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profileError || !profile) {
+          console.error('Profile verification error:', profileError);
+          if (mounted) {
+            setIsAuthenticated(false);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        if (mounted) {
+          setIsAuthenticated(true);
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error('Auth check error:', error);
-        await supabase.auth.signOut();
-        setIsAuthenticated(false);
+        if (mounted) {
+          setIsAuthenticated(false);
+          setIsLoading(false);
+        }
         toast.error("Session expired. Please sign in again.");
-      } finally {
-        setIsLoading(false);
       }
     };
 
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
+      console.log('Auth state changed in ProtectedRoute:', event, session?.user?.id);
       
-      if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        navigate('/auth', { replace: true });
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        if (mounted) {
+          setIsAuthenticated(false);
+          navigate('/auth', { replace: true });
+        }
       } else if (event === 'SIGNED_IN' && session) {
-        setIsAuthenticated(true);
+        if (mounted) {
+          setIsAuthenticated(true);
+        }
       }
       
-      setIsLoading(false);
+      if (mounted) {
+        setIsLoading(false);
+      }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
