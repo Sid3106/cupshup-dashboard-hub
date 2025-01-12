@@ -19,6 +19,8 @@ const emailSchema = z.object({
 export default function AuthPage() {
   const { toast } = useToast();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldownEndTime, setCooldownEndTime] = useState<number | null>(null);
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -29,6 +31,18 @@ export default function AuthPage() {
 
   const handleEmailSubmit = async (values: z.infer<typeof emailSchema>) => {
     try {
+      // Check if we're in cooldown period
+      if (cooldownEndTime && Date.now() < cooldownEndTime) {
+        const remainingSeconds = Math.ceil((cooldownEndTime - Date.now()) / 1000);
+        toast({
+          variant: "destructive",
+          title: "Please wait",
+          description: `You can try again in ${remainingSeconds} seconds`,
+        });
+        return;
+      }
+
+      setIsSubmitting(true);
       setAuthError(null);
       
       const { error: signInError } = await supabase.auth.signInWithOtp({
@@ -48,6 +62,20 @@ export default function AuthPage() {
           });
           return;
         }
+
+        // Handle rate limit error
+        if (signInError.message.includes("rate_limit")) {
+          const waitSeconds = 22; // Supabase's required wait time
+          const endTime = Date.now() + (waitSeconds * 1000);
+          setCooldownEndTime(endTime);
+          toast({
+            variant: "destructive",
+            title: "Too many attempts",
+            description: `Please wait ${waitSeconds} seconds before trying again`,
+          });
+          return;
+        }
+
         throw signInError;
       }
 
@@ -55,6 +83,11 @@ export default function AuthPage() {
         title: "Magic Link Sent",
         description: "Check your email to sign in",
       });
+      
+      // Set cooldown after successful send
+      const endTime = Date.now() + (22 * 1000);
+      setCooldownEndTime(endTime);
+      
     } catch (error: any) {
       console.error('Email submission error:', error);
       setAuthError(error.message);
@@ -63,8 +96,15 @@ export default function AuthPage() {
         title: "Error",
         description: error.message,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  // Calculate remaining cooldown time
+  const remainingCooldown = cooldownEndTime && Date.now() < cooldownEndTime
+    ? Math.ceil((cooldownEndTime - Date.now()) / 1000)
+    : null;
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0 bg-[#00A979]">
@@ -106,8 +146,17 @@ export default function AuthPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full bg-[#00A979]">
-                  Log In
+                <Button 
+                  type="submit" 
+                  className="w-full bg-[#00A979]" 
+                  disabled={isSubmitting || !!remainingCooldown}
+                >
+                  {remainingCooldown 
+                    ? `Wait ${remainingCooldown}s` 
+                    : isSubmitting 
+                      ? "Sending..." 
+                      : "Log In"
+                  }
                 </Button>
               </form>
             </Form>
