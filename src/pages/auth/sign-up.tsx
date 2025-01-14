@@ -1,16 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthSidebar } from "@/components/auth/AuthSidebar";
-import { SignInForm } from "@/components/auth/SignInForm";
-import { useLocation } from "react-router-dom";
+import { SignUpForm } from "@/components/auth/SignUpForm";
 
-export default function AuthPage() {
-  const location = useLocation();
-  const view = location.pathname === "/auth" ? "sign_in" : "update_password";
-
+export default function SignUpPage() {
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0 bg-[#00A979]">
-      <AuthSidebar view={view} />
+      <AuthSidebar view="sign_in" />
       <div className="p-4 lg:p-6 h-full flex items-center justify-center">
         <Card className="mx-auto w-full max-w-sm">
           <div className="flex flex-col items-center pt-4">
@@ -21,9 +17,9 @@ export default function AuthPage() {
             />
             <p className="font-roboto text-[#00A979] text-lg font-bold mb-2">Let's Brew Innovation!</p>
           </div>
-          <AuthHeader view={view} />
+          <AuthHeader view="sign_in" />
           <CardContent className="pb-3">
-            <SignInForm />
+            <SignUpForm />
           </CardContent>
         </Card>
       </div>
