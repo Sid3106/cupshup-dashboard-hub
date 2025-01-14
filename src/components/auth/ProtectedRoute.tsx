@@ -13,13 +13,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const abortController = new AbortController();
     let mounted = true;
-    
+
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Checking auth status...');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) throw sessionError;
         
         if (!session) {
+          console.log('No session found');
           if (mounted) {
             setIsAuthenticated(false);
             setIsLoading(false);
@@ -28,13 +33,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           return;
         }
 
+        console.log('Session found, checking profile...');
         if (mounted) {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', session.user.id)
             .single();
 
+          if (profileError) throw profileError;
+
+          console.log('Profile status:', !!profile);
           setIsAuthenticated(!!profile);
           setIsLoading(false);
           
@@ -47,38 +56,59 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         if (mounted) {
           setIsAuthenticated(false);
           setIsLoading(false);
-          toast.error("Authentication error occurred");
+          toast.error("Authentication error occurred. Please try signing in again.");
         }
       }
     };
 
+    // Initial auth check
     checkAuth();
 
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+      if (!mounted || abortController.signal.aborted) return;
+
+      console.log('Auth state changed:', event);
 
       if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         setIsLoading(false);
         navigate('/auth', { replace: true });
-      } else if (event === 'SIGNED_IN' && session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
+        return;
+      }
 
-        setIsAuthenticated(!!profile);
-        setIsLoading(false);
-        
-        if (!profile) {
-          toast.error("User profile not found. Please contact support.");
+      if (event === 'SIGNED_IN' && session) {
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (profileError) throw profileError;
+
+          if (mounted) {
+            setIsAuthenticated(!!profile);
+            setIsLoading(false);
+          }
+          
+          if (!profile) {
+            toast.error("User profile not found. Please contact support.");
+          }
+        } catch (error) {
+          console.error('Profile fetch error:', error);
+          if (mounted) {
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            toast.error("Error fetching user profile");
+          }
         }
       }
     });
 
     return () => {
       mounted = false;
+      abortController.abort();
       subscription.unsubscribe();
     };
   }, [navigate]);

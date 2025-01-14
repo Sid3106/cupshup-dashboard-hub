@@ -11,11 +11,15 @@ export function PublicRoute({ children }: PublicRouteProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const abortController = new AbortController();
     let mounted = true;
 
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Checking public route auth status...');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) throw sessionError;
 
         if (!session) {
           if (mounted) {
@@ -26,17 +30,20 @@ export function PublicRoute({ children }: PublicRouteProps) {
         }
 
         if (mounted) {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', session.user.id)
             .single();
 
+          if (profileError) throw profileError;
+
+          console.log('Public route profile status:', !!profile);
           setIsAuthenticated(!!profile);
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Auth check error:', error);
+        console.error('Public route auth check error:', error);
         if (mounted) {
           setIsAuthenticated(false);
           setIsLoading(false);
@@ -47,25 +54,40 @@ export function PublicRoute({ children }: PublicRouteProps) {
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+      if (!mounted || abortController.signal.aborted) return;
+
+      console.log('Public route auth state changed:', event);
 
       if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false);
         setIsLoading(false);
       } else if (event === 'SIGNED_IN' && session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single();
 
-        setIsAuthenticated(!!profile);
-        setIsLoading(false);
+          if (profileError) throw profileError;
+
+          if (mounted) {
+            setIsAuthenticated(!!profile);
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error('Public route profile fetch error:', error);
+          if (mounted) {
+            setIsAuthenticated(false);
+            setIsLoading(false);
+          }
+        }
       }
     });
 
     return () => {
       mounted = false;
+      abortController.abort();
       subscription.unsubscribe();
     };
   }, []);
